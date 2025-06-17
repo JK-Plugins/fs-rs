@@ -54,13 +54,13 @@ impl AdobePluginGlobal for Plugin {
             Params::Target1Start,
             Params::Target1End,
             "target1",
-            true,
+            false,
             |params| {
                 params.add(
                     Params::Target1Enabled,
                     "Enabled",
                     ae::CheckBoxDef::setup(|f| {
-                        f.set_default(true);
+                        f.set_default(false);
                         f.set_value(f.default());
                     }),
                 )?;
@@ -132,7 +132,7 @@ impl AdobePluginGlobal for Plugin {
 impl Plugin {
     fn about(&mut self, out_data: &mut OutData) {
         out_data
-            .set_return_msg("SDK_Noise v5.6\rCopyright 2007-2023 Adobe Inc.\rSimple noise effect.");
+            .set_return_msg("fs-rs pixelselector");
     }
 
     fn global_setup(&mut self, in_data: &InData) -> Result<(), ae::Error> {
@@ -240,6 +240,9 @@ impl Plugin {
              -> Result<(), Error> {
                 match (pixel, out_pixel) {
                     (ae::GenericPixel::Pixel8(pixel), ae::GenericPixelMut::Pixel8(out_pixel)) => {
+                        if !target1_enabled {
+                            return Ok(());
+                        }
                         let b = comp_pix8_lv(&target1_color, pixel, level as u8);
                         if b == invert {
                             out_pixel.alpha = 0;
@@ -249,6 +252,9 @@ impl Plugin {
                         }
                     }
                     (ae::GenericPixel::Pixel16(pixel), ae::GenericPixelMut::Pixel16(out_pixel)) => {
+                        if !target1_enabled {
+                            return Ok(());
+                        }
                         let b = comp_pix8_lv(&target1_color, &conv_16_to_8(pixel), level as u8);
                         if b == invert {
                             out_pixel.alpha = 0;
@@ -261,6 +267,9 @@ impl Plugin {
                         ae::GenericPixel::PixelF32(pixel),
                         ae::GenericPixelMut::PixelF32(out_pixel),
                     ) => {
+                        if !target1_enabled {
+                            return Ok(());
+                        }
                         let b = comp_pix8_lv(&target1_color, &conv_32_to_8(pixel), level as u8);
                         if b == invert {
                             out_pixel.alpha = 0.0;
