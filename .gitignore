@@ -1,0 +1,4 @@
+/target
+/.vscode
+/src/generated_lut.rs
+/flamegraph.svg

@@ -1,0 +1,27 @@
+[package]
+name = "pixelselector-rs"
+version = "0.0.1"
+edition = "2021"
+
+[profile.release]
+debug = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[target.'cfg(any(windows, target_os="macos"))'.dependencies]
+after-effects = {git = "https://github.com/virtualritz/after-effects", rev = "c70729a", features = ["catch-panics"]}
+# premiere = {git = "https://github.com/virtualritz/after-effects", rev = "c70729a"}
+
+[target.'cfg(any(windows, target_os="macos"))'.build-dependencies]
+pipl = {git = "https://github.com/virtualritz/after-effects", rev = "c70729a"}
+
+[dependencies]
+log = "0.4.26"
+win_dbg_logger = "0.1.0"
+
+[patch.crates-io]
+win_dbg_logger = { git = "https://github.com/wladwm/win_dbg_logger", branch = "master" }
+
+[dev-dependencies]
+image = "0.25.6"
