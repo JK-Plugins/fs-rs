@@ -1,3 +1,5 @@
+// ref: https://github.com/bryful/F-s-PluginsProjects/blob/master/FsLibrary/FsUtils.h
+
 use after_effects::{sys::{PF_Pixel, PF_Pixel16, PF_PixelFloat}, HALF_CHANNEL16, MAX_CHANNEL16, MAX_CHANNEL8};
 
 pub fn comp_pix8_lv(s: &PF_Pixel, d: &PF_Pixel, lv: u8) -> bool {

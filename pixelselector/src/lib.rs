@@ -1,8 +1,6 @@
-mod utils;
-
 use after_effects::{self as ae};
 
-use crate::utils::{comp_pix8_lv, conv_16_to_8, conv_32_to_8};
+use libs::utils::{comp_pix8_lv, conv_16_to_8, conv_32_to_8};
 
 #[derive(Eq, PartialEq, Hash, Clone, Copy, Debug)]
 enum Params {
