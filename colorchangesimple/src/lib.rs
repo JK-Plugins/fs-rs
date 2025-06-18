@@ -1,6 +1,6 @@
 use after_effects::{self as ae};
 
-use libs::utils::{round_byte_fp_long};
+use libs::utils::{conv_16_to_8, conv_32_to_8, conv_8_to_16, conv_8_to_32, round_byte_fp_long};
 
 #[derive(Eq, PartialEq, Hash, Clone, Copy, Debug)]
 enum Params {
@@ -193,8 +193,10 @@ impl Plugin {
         params: &mut ae::Parameters<Params>,
     ) -> Result<(), Error> {
         let level = params.get(Params::Level)?.as_float_slider()?.value();
-        // 0.0 - 100.0 => 0 - 255
         let level = (MAX_CHANNEL8 as f64 * level / 100.0) as u8; // Convert to 0-255 range
+                                                                 // 0.0 - 100.0 => 0 - 255
+                                                                 // let level = (MAX_CHANNEL8 as f64 * level / 100.0) as u8; // Convert to 0-255 range
+                                                                 // いどう
         let src_color = params.get(Params::SrcColor)?.as_color()?.value();
         let dst_color = params.get(Params::DstColor)?.as_color()?.value();
 
@@ -237,13 +239,49 @@ impl Plugin {
                         }
                     }
                     (ae::GenericPixel::Pixel16(pixel), ae::GenericPixelMut::Pixel16(out_pixel)) => {
-                        todo!();
+                        let p = &conv_16_to_8(pixel);
+                        let d = conv_8_to_16(&dst_color);
+                        if level == 0 {
+                            if p.red == src_color.red
+                                && p.green == src_color.green
+                                && p.blue == src_color.blue
+                            {
+                                out_pixel.red = d.red;
+                                out_pixel.green = d.green;
+                                out_pixel.blue = d.blue;
+                            }
+                        } else if p.red.abs_diff(src_color.red) <= level
+                            && p.green.abs_diff(src_color.green) <= level
+                            && p.blue.abs_diff(src_color.blue) <= level
+                        {
+                            out_pixel.red = d.red;
+                            out_pixel.green = d.green;
+                            out_pixel.blue = d.blue;
+                        }
                     }
                     (
                         ae::GenericPixel::PixelF32(pixel),
                         ae::GenericPixelMut::PixelF32(out_pixel),
                     ) => {
-                        todo!();
+                        let p = &conv_32_to_8(pixel);
+                        let d = conv_8_to_32(&dst_color);
+                        if level == 0 {
+                            if p.red == src_color.red
+                                && p.green == src_color.green
+                                && p.blue == src_color.blue
+                            {
+                                out_pixel.red = d.red;
+                                out_pixel.green = d.green;
+                                out_pixel.blue = d.blue;
+                            }
+                        } else if p.red.abs_diff(src_color.red) <= level
+                            && p.green.abs_diff(src_color.green) <= level
+                            && p.blue.abs_diff(src_color.blue) <= level
+                        {
+                            out_pixel.red = d.red;
+                            out_pixel.green = d.green;
+                            out_pixel.blue = d.blue;
+                        }
                     }
                     _ => return Err(Error::BadCallbackParameter),
                 }
