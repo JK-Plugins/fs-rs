@@ -2,13 +2,20 @@
 
 use after_effects::{sys::{PF_Pixel, PF_Pixel16, PF_PixelFloat}, HALF_CHANNEL16, MAX_CHANNEL16, MAX_CHANNEL8};
 
+pub fn abs<T>(x: T) -> T
+where
+    T: PartialOrd + std::ops::Neg<Output = T> + Copy + Default,
+{
+    if x >= T::default() { x } else { -x }
+}
+
 pub fn comp_pix8_lv(s: &PF_Pixel, d: &PF_Pixel, lv: u8) -> bool {
     (s.blue as i32 - d.blue as i32).abs() <= lv as i32 &&
     (s.green as i32 - d.green as i32).abs() <= lv as i32 &&
     (s.red as i32 - d.red as i32).abs() <= lv as i32
 }
 
-fn round_byte_fp_long(x: f32) -> u8 {
+pub fn round_byte_fp_long(x: f32) -> u8 {
     let mut temp = x;
     if temp < 0.0 { temp = 0.0; }
     if temp > MAX_CHANNEL8 as f32 { temp = MAX_CHANNEL8 as f32; }
