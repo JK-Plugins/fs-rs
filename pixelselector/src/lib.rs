@@ -11,7 +11,7 @@ enum Params {
     Target1Enabled,
     Target1Color,
     Target1End,
-    Level,
+    Threshold,
 }
 
 #[derive(Default)]
@@ -80,8 +80,8 @@ impl AdobePluginGlobal for Plugin {
         )?;
 
         params.add(
-            Params::Level,
-            "Level",
+            Params::Threshold,
+            "Threshold",
             ae::FloatSliderDef::setup(|f| {
                 f.set_default(0.0);
                 f.set_valid_min(0.0);
@@ -222,7 +222,7 @@ impl Plugin {
         let target1_enabled = params.get(Params::Target1Enabled)?.as_checkbox()?.value();
         let target1_color = params.get(Params::Target1Color)?.as_color()?.value();
         let invert = params.get(Params::OptionInvert)?.as_checkbox()?.value();
-        let level = params.get(Params::Level)?.as_float_slider()?.value();
+        let threshold = params.get(Params::Threshold)?.as_float_slider()?.value();
 
         let progress_final = out_layer.height() as _;
         ae::pf::suites::WorldTransform::new()?.copy_hq(in_data.effect_ref(), &in_layer, &mut out_layer, None, None)?;
@@ -241,7 +241,7 @@ impl Plugin {
                         if !target1_enabled {
                             return Ok(());
                         }
-                        let b = comp_pix8_lv(&target1_color, pixel, level as u8);
+                        let b = comp_pix8_lv(&target1_color, pixel, threshold as u8);
                         if b == invert {
                             out_pixel.alpha = 0;
                             out_pixel.red = MAX_CHANNEL8 as u8;
@@ -253,7 +253,7 @@ impl Plugin {
                         if !target1_enabled {
                             return Ok(());
                         }
-                        let b = comp_pix8_lv(&target1_color, &conv_16_to_8(pixel), level as u8);
+                        let b = comp_pix8_lv(&target1_color, &conv_16_to_8(pixel), threshold as u8);
                         if b == invert {
                             out_pixel.alpha = 0;
                             out_pixel.red = MAX_CHANNEL16 as u16;
@@ -268,7 +268,7 @@ impl Plugin {
                         if !target1_enabled {
                             return Ok(());
                         }
-                        let b = comp_pix8_lv(&target1_color, &conv_32_to_8(pixel), level as u8);
+                        let b = comp_pix8_lv(&target1_color, &conv_32_to_8(pixel), threshold as u8);
                         if b == invert {
                             out_pixel.alpha = 0.0;
                             out_pixel.red = 1.0;
