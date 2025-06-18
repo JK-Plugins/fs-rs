@@ -2,6 +2,7 @@
 members = [
   "pixelselector",
   "libs",
+  "colorchangesimple",
 ]
 
 [patch.crates-io]
