@@ -17,10 +17,13 @@ export LIBCLANG_PATH=/path/to/llvm/bin
 setx LIBCLANG_PATH "C:\path\to\llvm\bin"
 ```
 
-for macOS, you will need to set `PATH` to include the LLVM binaries:
+and, you need to set `PATH` to include the LLVM binaries:
 ```bash
 # macOS
 export PATH=/path/to/llvm/bin:$PATH
+" # Windows (PowerShell)
+setx PATH "C:\path\to\llvm\bin;$env:PATH"
+# or, if you use LLVM Installer, you can set it optionally
 ```
 
 ### **Adobe After Effects SDK (May 2023)**  
