@@ -7,12 +7,28 @@
 Download and install from  
 https://github.com/llvm/llvm-project/releases
 
+and you need to set `LIBCLANG_PATH` to the path of the `bin` directory in the LLVM installation.
+
+For example, if you installed LLVM to `/path/to/llvm`, you would set:
+```bash
+# macOS
+export LIBCLANG_PATH=/path/to/llvm/bin
+# Windows (PowerShell)
+setx LIBCLANG_PATH "C:\path\to\llvm\bin"
+```
+
+for macOS, you will need to set `PATH` to include the LLVM binaries:
+```bash
+# macOS
+export PATH=/path/to/llvm/bin:$PATH
+```
+
 ### **Adobe After Effects SDK (May 2023)**  
 
 Download from https://console.adobe.io/downloads/ae
 Place the SDK folder anywhere you like, then set:
 ```bash
-# Linux / macOS
+# macOS
 export AESDK_ROOT=/path/to/AfterEffects_SDK
 
 # Windows (PowerShell)
