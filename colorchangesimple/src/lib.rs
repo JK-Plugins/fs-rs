@@ -30,6 +30,7 @@ impl AdobePluginGlobal for Plugin {
             "level",
             ae::FloatSliderDef::setup(|f| {
                 f.set_default(0.0);
+                f.set_precision(1); // 小数点以下の桁数
                 f.set_valid_min(0.0);
                 f.set_valid_max(100.0);
                 f.set_slider_min(0.0);
