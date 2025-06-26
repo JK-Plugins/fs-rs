@@ -2,6 +2,7 @@
 members = [
   "pixelselector",
   "libs",
+  "colorchange",
   "colorchangesimple",
   "colorkey",
 ]
