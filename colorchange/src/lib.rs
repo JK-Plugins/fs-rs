@@ -532,22 +532,22 @@ impl Plugin {
         cb.checkin_layer_pixels(0)?;
         Ok(())
     }
-
+    // ペア作り
     fn collect_enabled_color_pairs(
         params: &ae::Parameters<Params>,
     ) -> Result<Vec<(Pixel8, Pixel8)>, Error> {
         let mut pairs = Vec::new();
-
+        //ここは、それぞれTarget0, SrcColor0, DstColor0から3つ飛ばしでパラメータを取得できるため、+1,+2をする必要が無い。
         for i in 0..8 {
             let target = match Params::from_index(Params::Target0 as usize + i * 3) {
                 Some(p) => p,
                 None => continue,
             };
-            let src = match Params::from_index(Params::SrcColor0 as usize + i * 3 + 1) {
+            let src = match Params::from_index(Params::SrcColor0 as usize + i * 3) {
                 Some(p) => p,
                 None => continue,
             };
-            let dst = match Params::from_index(Params::DstColor0 as usize + i * 3 + 2) {
+            let dst = match Params::from_index(Params::DstColor0 as usize + i * 3) {
                 Some(p) => p,
                 None => continue,
             };
@@ -600,22 +600,30 @@ impl Plugin {
                 match (pixel, out_pixel) {
                     (ae::GenericPixel::Pixel8(pixel), ae::GenericPixelMut::Pixel8(out_pixel)) => {
                         for (src_color, dst_color) in &color_pairs {
-                            let matched = if level == 0 {
-                                pixel.red == src_color.red
+                            if level == 0 {
+                                if pixel.red == src_color.red
                                     && pixel.green == src_color.green
                                     && pixel.blue == src_color.blue
-                            } else {
-                                pixel.red.abs_diff(src_color.red) <= level
-                                    && pixel.green.abs_diff(src_color.green) <= level
-                                    && pixel.blue.abs_diff(src_color.blue) <= level
-                            };
-
-                            if matched {
+                                {
+                                    out_pixel.red = dst_color.red;
+                                    out_pixel.green = dst_color.green;
+                                    out_pixel.blue = dst_color.blue;
+                                }
+                            } else if pixel.red.abs_diff(src_color.red) <= level
+                                && pixel.green.abs_diff(src_color.green) <= level
+                                && pixel.blue.abs_diff(src_color.blue) <= level
+                            {
                                 out_pixel.red = dst_color.red;
                                 out_pixel.green = dst_color.green;
                                 out_pixel.blue = dst_color.blue;
-                                break; // 最初にマッチした色だけ置き換えたい場合
                             }
+
+                            // if matched {
+                            //     out_pixel.red = dst_color.red;
+                            //     out_pixel.green = dst_color.green;
+                            //     out_pixel.blue = dst_color.blue;
+                            //     break; // 最初にマッチした色だけ置き換えたい場合
+                            // }
                         }
                     }
 
@@ -624,20 +632,22 @@ impl Plugin {
                         for (src_color, dst_color) in &color_pairs {
                             let d = conv_8_to_16(&dst_color);
 
-                            let matched = if level == 0 {
-                                p.red == src_color.red
+                            if level == 0 {
+                                if p.red == src_color.red
                                     && p.green == src_color.green
                                     && p.blue == src_color.blue
-                            } else {
-                                p.red.abs_diff(src_color.red) <= level
-                                    && p.green.abs_diff(src_color.green) <= level
-                                    && p.blue.abs_diff(src_color.blue) <= level
-                            };
-                            if matched {
+                                {
+                                    out_pixel.red = d.red;
+                                    out_pixel.green = d.green;
+                                    out_pixel.blue = d.blue;
+                                }
+                            } else if p.red.abs_diff(src_color.red) <= level
+                                && p.green.abs_diff(src_color.green) <= level
+                                && p.blue.abs_diff(src_color.blue) <= level
+                            {
                                 out_pixel.red = d.red;
                                 out_pixel.green = d.green;
                                 out_pixel.blue = d.blue;
-                                break;
                             }
                         }
                     }
@@ -649,20 +659,22 @@ impl Plugin {
                         for (src_color, dst_color) in &color_pairs {
                             let d = conv_8_to_32(&dst_color);
 
-                            let matched = if level == 0 {
-                                p.red == src_color.red
+                            if level == 0 {
+                                if p.red == src_color.red
                                     && p.green == src_color.green
                                     && p.blue == src_color.blue
-                            } else {
-                                p.red.abs_diff(src_color.red) <= level
-                                    && p.green.abs_diff(src_color.green) <= level
-                                    && p.blue.abs_diff(src_color.blue) <= level
-                            };
-                            if matched {
+                                {
+                                    out_pixel.red = d.red;
+                                    out_pixel.green = d.green;
+                                    out_pixel.blue = d.blue;
+                                }
+                            } else if p.red.abs_diff(src_color.red) <= level
+                                && p.green.abs_diff(src_color.green) <= level
+                                && p.blue.abs_diff(src_color.blue) <= level
+                            {
                                 out_pixel.red = d.red;
                                 out_pixel.green = d.green;
                                 out_pixel.blue = d.blue;
-                                break;
                             }
                         }
                     }
