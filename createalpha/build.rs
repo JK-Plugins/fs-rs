@@ -9,12 +9,12 @@ fn main() {
     const EFFECT_VERSION_MINOR: u32 = 0;
     const EFFECT_VERSION_PATCH: u32 = 1;
 
-    const EFFECT_NAME: &str = "createalpha-rs";
+    const EFFECT_NAME: &str = "JK Create Alpha F's";
 
     pipl::plugin_build(vec![
         Property::Kind(PIPLType::AEEffect),
         Property::Name(EFFECT_NAME),
-        Property::Category("Sample Plug-ins"),
+        Property::Category("JK Plugins F's"),
 
         #[cfg(target_os = "windows")]
         Property::CodeWin64X86("EffectMain"),
