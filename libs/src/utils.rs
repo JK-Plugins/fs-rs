@@ -22,6 +22,17 @@ pub fn comp_pix8_lv(s: &PF_Pixel, d: &PF_Pixel, lv: u8) -> bool {
         && (s.red as i32 - d.red as i32).abs() <= lv as i32
 }
 
+pub fn round_byte_long(x: i32) -> u8 {
+    let mut temp = x;
+    if temp < 0 {
+        temp = 0;
+    }
+    if temp > MAX_CHANNEL8 as i32 {
+        temp = MAX_CHANNEL8 as i32;
+    }
+    temp as u8
+}
+
 pub fn round_byte_fp_long(x: f32) -> u8 {
     let mut temp = x;
     if temp < 0.0 {
@@ -42,6 +53,28 @@ pub fn round_short_fp_long(x: f32) -> u16 {
         temp = MAX_CHANNEL16 as f32;
     }
     temp.round() as u16
+}
+
+pub fn round_short(x: i32) -> u16 {
+    let mut temp = x;
+    if temp < 0 {
+        temp = 0;
+    }
+    if temp > MAX_CHANNEL16 as i32 {
+        temp = MAX_CHANNEL16 as i32;
+    }
+    temp as u16
+}
+
+pub fn round_fp_short(x: f32) -> f32 {
+    let mut temp = x;
+    if temp < 0.0 {
+        temp = 0.0;
+    }
+    if temp > 32.0 {
+        temp = 32.0;
+    }
+    temp
 }
 
 pub fn conv_16_to_8(p: &PF_Pixel16) -> PF_Pixel {
