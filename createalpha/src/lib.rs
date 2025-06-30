@@ -6,11 +6,7 @@ use libs::utils::{
 };
 
 #[derive(Eq, PartialEq, Hash, Clone, Copy, Debug)]
-enum Params {
-    // Level,
-    // SrcColor,
-    // DstColor,
-}
+enum Params {}
 
 #[derive(Default)]
 struct Plugin {}
@@ -28,48 +24,6 @@ impl AdobePluginGlobal for Plugin {
         in_data: InData,
         _: OutData,
     ) -> Result<(), Error> {
-        // params.add(
-        //     Params::Level,
-        //     "level",
-        //     ae::FloatSliderDef::setup(|f| {
-        //         f.set_default(0.0);
-        //         f.set_precision(1); // 小数点以下の桁数
-        //         f.set_valid_min(0.0);
-        //         f.set_valid_max(100.0);
-        //         f.set_slider_min(0.0);
-        //         f.set_slider_max(100.0);
-        //         f.set_value(f.default());
-        //     }),
-        // )?;
-
-        // params.add(
-        //     Params::SrcColor,
-        //     "Source Color",
-        //     ae::ColorDef::setup(|f| {
-        //         f.set_default(Pixel8 {
-        //             red: 0xFF,
-        //             green: 0xFF,
-        //             blue: 0xFF,
-        //             alpha: 0xFF,
-        //         });
-        //         f.set_value(f.default());
-        //     }),
-        // )?;
-
-        // params.add(
-        //     Params::DstColor,
-        //     "Destination Color",
-        //     ae::ColorDef::setup(|f| {
-        //         f.set_default(Pixel8 {
-        //             red: 0x00,
-        //             green: 0x00,
-        //             blue: 0x00,
-        //             alpha: 0xFF,
-        //         });
-        //         f.set_value(f.default());
-        //     }),
-        // )?;
-
         Ok(())
     }
 
@@ -196,14 +150,6 @@ impl Plugin {
         mut out_layer: ae::Layer,
         params: &mut ae::Parameters<Params>,
     ) -> Result<(), Error> {
-        // let level = params.get(Params::Level)?.as_float_slider()?.value();
-        // let level = (MAX_CHANNEL8 as f64 * level / 100.0) as u8; // Convert to 0-255 range
-        //                                                          // 0.0 - 100.0 => 0 - 255
-        //                                                          // let level = (MAX_CHANNEL8 as f64 * level / 100.0) as u8; // Convert to 0-255 range
-        //                                                          // いどう
-        // let src_color = params.get(Params::SrcColor)?.as_color()?.value();
-        // let dst_color = params.get(Params::DstColor)?.as_color()?.value();
-
         let progress_final = out_layer.height() as _;
         ae::pf::suites::WorldTransform::new()?.copy_hq(
             in_data.effect_ref(),
@@ -224,55 +170,23 @@ impl Plugin {
              -> Result<(), Error> {
                 match (pixel, out_pixel) {
                     (ae::GenericPixel::Pixel8(pixel), ae::GenericPixelMut::Pixel8(out_pixel)) => {
-                        // if level == 0 {
-                        //     if pixel.red == src_color.red
-                        //         && pixel.green == src_color.green
-                        //         && pixel.blue == src_color.blue
-                        //     {
-                        //         out_pixel.red = dst_color.red;
-                        //         out_pixel.green = dst_color.green;
-                        //         out_pixel.blue = dst_color.blue;
-                        //     }
-                        // } else if pixel.red.abs_diff(src_color.red) <= level
-                        //     && pixel.green.abs_diff(src_color.green) <= level
-                        //     && pixel.blue.abs_diff(src_color.blue) <= level
-                        // {
-                        //     out_pixel.red = dst_color.red;
-                        //     out_pixel.green = dst_color.green;
-                        //     out_pixel.blue = dst_color.blue;
-                        // }
-
                         if out_pixel.alpha < MAX_CHANNEL8 as u8 {
-                            let alpha_normalized = out_pixel.alpha as i32 / MAX_CHANNEL8 as i32;
-                            out_pixel.red =
-                                round_byte_long(out_pixel.red as i32 * alpha_normalized);
-                            out_pixel.green =
-                                round_byte_long(out_pixel.green as i32 * alpha_normalized);
-                            out_pixel.blue =
-                                round_byte_long(out_pixel.blue as i32 * alpha_normalized);
+                            out_pixel.red = round_byte_long(
+                                (out_pixel.red as u32 * out_pixel.alpha as u32
+                                    / MAX_CHANNEL8 as u32) as i32,
+                            );
+                            out_pixel.green = round_byte_long(
+                                (out_pixel.green as u32 * out_pixel.alpha as u32
+                                    / MAX_CHANNEL8 as u32) as i32,
+                            );
+                            out_pixel.blue = round_byte_long(
+                                (out_pixel.blue as u32 * out_pixel.alpha as u32
+                                    / MAX_CHANNEL8 as u32) as i32,
+                            );
                         }
                         out_pixel.alpha = out_pixel.red.max(out_pixel.green).max(out_pixel.blue);
                     }
                     (ae::GenericPixel::Pixel16(pixel), ae::GenericPixelMut::Pixel16(out_pixel)) => {
-                        // let p = &conv_16_to_8(pixel);
-                        // let d = conv_8_to_16(&dst_color);
-                        // if level == 0 {
-                        //     if p.red == src_color.red
-                        //         && p.green == src_color.green
-                        //         && p.blue == src_color.blue
-                        //     {
-                        //         out_pixel.red = d.red;
-                        //         out_pixel.green = d.green;
-                        //         out_pixel.blue = d.blue;
-                        //     }
-                        // } else if p.red.abs_diff(src_color.red) <= level
-                        //     && p.green.abs_diff(src_color.green) <= level
-                        //     && p.blue.abs_diff(src_color.blue) <= level
-                        // {
-                        //     out_pixel.red = d.red;
-                        //     out_pixel.green = d.green;
-                        //     out_pixel.blue = d.blue;
-                        // }ヒカマニ構文
                         if out_pixel.alpha < MAX_CHANNEL16 as u16 {
                             out_pixel.red = round_short(
                                 (out_pixel.red * out_pixel.alpha / MAX_CHANNEL16 as u16) as i32,
@@ -290,25 +204,6 @@ impl Plugin {
                         ae::GenericPixel::PixelF32(pixel),
                         ae::GenericPixelMut::PixelF32(out_pixel),
                     ) => {
-                        // let p = &conv_32_to_8(pixel);
-                        // let d = conv_8_to_32(&dst_color);
-                        // if level == 0 {
-                        //     if p.red == src_color.red
-                        //         && p.green == src_color.green
-                        //         && p.blue == src_color.blue
-                        //     {
-                        //         out_pixel.red = d.red;
-                        //         out_pixel.green = d.green;
-                        //         out_pixel.blue = d.blue;
-                        //     }
-                        // } else if p.red.abs_diff(src_color.red) <= level
-                        //     && p.green.abs_diff(src_color.green) <= level
-                        //     && p.blue.abs_diff(src_color.blue) <= level
-                        // {
-                        //     out_pixel.red = d.red;
-                        //     out_pixel.green = d.green;
-                        //     out_pixel.blue = d.blue;
-                        // }
                         if out_pixel.alpha < 1.0 {
                             out_pixel.red = round_fp_short(out_pixel.red * out_pixel.alpha);
                             out_pixel.green = round_fp_short(out_pixel.green * out_pixel.alpha);
@@ -321,6 +216,11 @@ impl Plugin {
 
                 Ok(())
             },
+        )?;
+        ae::pf::suites::FillMatte::new()?.premultiply(
+            in_data.effect_ref(),
+            &mut out_layer,
+            false,
         )?;
         Ok(())
     }
