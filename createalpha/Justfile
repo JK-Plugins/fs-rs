@@ -1,6 +1,7 @@
-PluginName       := "createalpha-rs"
-BundleIdentifier := "com.adobe.AfterEffects.{{PluginName}}"
-BinaryName       := replace(lowercase(PluginName), "-", "_")
+BuildName        := "createalpha-fs"
+PluginName       := "JK Create Alpha F's"
+BundleIdentifier := "com.adobe.AfterEffects.{{BuildName}}"
+BinaryName       := replace(lowercase(BuildName), "-", "_")
 
 set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 
@@ -18,7 +19,7 @@ build:
 [windows]
 release:
     cargo build --release
-    Copy-Item -Force '{{TargetDir}}\release\{{BinaryName}}.dll' '{{TargetDir}}\release\{{PluginName}}.aex'
+    Copy-Item -Force '{{TargetDir}}\release\{{BinaryName}}.dll' '{{TargetDir}}\release\{{BuildName}}.aex'
     if (-not $env:NO_INSTALL) { \
         Start-Process PowerShell -Verb runAs -ArgumentList "-command Set-Location '{{source_directory()}}'; Copy-Item -Force '{{TargetDir}}\release\{{BinaryName}}.dll' 'C:\Program Files\Adobe\Common\Plug-ins\7.0\MediaCore\{{PluginName}}.aex'" \
     }
@@ -55,12 +56,12 @@ create_bundle profile TargetDir:
         cargo build --release --target x86_64-apple-darwin
         cargo build --release --target aarch64-apple-darwin
 
-        cp {{TargetDir}}/x86_64-apple-darwin/release/{{BinaryName}}.rsrc {{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/Resources/{{PluginName}}.rsrc
-        lipo {{TargetDir}}/{x86_64,aarch64}-apple-darwin/release/lib{{BinaryName}}.dylib -create -output {{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/MacOS/{{PluginName}}.dylib
-        mv {{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/MacOS/{{PluginName}}.dylib {{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/MacOS/{{PluginName}}
+        cp {{TargetDir}}/x86_64-apple-darwin/release/{{BinaryName}}.rsrc {{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/Resources/{{BuildName}}.rsrc
+        lipo {{TargetDir}}/{x86_64,aarch64}-apple-darwin/release/lib{{BinaryName}}.dylib -create -output {{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/MacOS/{{BuildName}}.dylib
+        mv {{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/MacOS/{{BuildName}}.dylib {{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/MacOS/{{BuildName}}
     else
-        cp {{TargetDir}}/{{profile}}/{{PluginName}}.rsrc {{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/Resources/{{PluginName}}.rsrc
-        cp {{TargetDir}}/{{profile}}/lib{{BinaryName}}.dylib {{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/MacOS/{{PluginName}}
+        cp {{TargetDir}}/{{profile}}/{{BuildName}}.rsrc {{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/Resources/{{BuildName}}.rsrc
+        cp {{TargetDir}}/{{profile}}/lib{{BinaryName}}.dylib {{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/MacOS/{{BuildName}}
     fi
 
     # codesign with the first development cert we can find using its hash

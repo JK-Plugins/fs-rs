@@ -318,7 +318,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "createalpha-rs"
+name = "createalpha-fs"
 version = "0.0.1"
 dependencies = [
  "after-effects",
