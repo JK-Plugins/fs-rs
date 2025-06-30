@@ -5,6 +5,7 @@ members = [
   "colorchange",
   "colorchangesimple",
   "colorkey",
+  "createalpha",
 ]
 
 [patch.crates-io]

@@ -2,3 +2,5 @@
 /.vscode
 /src/generated_lut.rs
 /flamegraph.svg
+
+.DS_Store
