@@ -1,5 +1,5 @@
 BuildName        := "createalpha-fs"
-PluginName       := "JK Create Alpha F's"
+PluginName       := "JK Create Alpha Fs"
 BundleIdentifier := "com.adobe.AfterEffects.{{BuildName}}"
 BinaryName       := replace(lowercase(BuildName), "-", "_")
 

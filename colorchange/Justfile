@@ -1,6 +1,7 @@
-PluginName       := "colorchange-rs"
-BundleIdentifier := "com.adobe.AfterEffects.{{PluginName}}"
-BinaryName       := replace(lowercase(PluginName), "-", "_")
+BuildName        := "colorchange-fs"
+PluginName       := "JK Color Change Fs"
+BundleIdentifier := "com.adobe.AfterEffects.{{BuildName}}"
+BinaryName       := replace(lowercase(BuildName), "-", "_")
 
 set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 
@@ -18,7 +19,7 @@ build:
 [windows]
 release:
     cargo build --release
-    Copy-Item -Force '{{TargetDir}}\release\{{BinaryName}}.dll' '{{TargetDir}}\release\{{PluginName}}.aex'
+    Copy-Item -Force '{{TargetDir}}\release\{{BinaryName}}.dll' '{{TargetDir}}\release\{{BuildName}}.aex'
     if (-not $env:NO_INSTALL) { \
         Start-Process PowerShell -Verb runAs -ArgumentList "-command Set-Location '{{source_directory()}}'; Copy-Item -Force '{{TargetDir}}\release\{{BinaryName}}.dll' 'C:\Program Files\Adobe\Common\Plug-ins\7.0\MediaCore\{{PluginName}}.aex'" \
     }
