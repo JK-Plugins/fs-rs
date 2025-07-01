@@ -1,5 +1,38 @@
 // ref: https://github.com/bryful/F-s-PluginsProjects/blob/master/FsLibrary/FsUtils.h
 
+/*
+
+    AfterEffectsSDKの型一覧です。
+
+    typedef int32_t			A_long;
+    typedef uint32_t		A_u_long;
+    typedef char			A_char;
+    typedef double			A_FpLong;
+    typedef float			A_FpShort;
+    typedef A_long			A_Err;
+    typedef void *			A_Handle;
+    typedef A_long			A_Fixed;
+    typedef A_u_long		A_UFixed;
+
+    #if defined( __MWERKS__) || defined (__GNUC__)  // metrowerks codewarrior and XCode/GCC
+        typedef int16_t			A_short;
+        typedef uint16_t		A_u_short;
+        typedef uint8_t			A_u_char;
+        typedef uint8_t			A_Boolean;
+        typedef intptr_t		A_intptr_t;
+    #else // windows
+        typedef short			A_short;
+        typedef unsigned short	A_u_short;
+        typedef unsigned char	A_u_char;
+        typedef unsigned char	A_Boolean;
+        #ifdef  _WIN64
+            typedef __int64     A_intptr_t;
+        #else
+            typedef  int32_t       A_intptr_t;
+        #endif
+    #endif
+*/
+
 use after_effects::{
     sys::{PF_Pixel, PF_Pixel16, PF_PixelFloat},
     HALF_CHANNEL16, HALF_CHANNEL8, MAX_CHANNEL16, MAX_CHANNEL8,
