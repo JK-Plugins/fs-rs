@@ -1,12 +1,13 @@
 [workspace]
 members = [
-  "pixelselector",
-  "libs",
-  "colorchange",
-  "colorchangesimple",
-  "colorkey",
-  "createalpha",
+    "colorchange",
+    "colorchangesimple",
+    "colorkey",
+    "createalpha",
+    "libs",
+    "pixelselector",
 ]
 
-[patch.crates-io]
-win_dbg_logger = { git = "https://github.com/wladwm/win_dbg_logger", branch = "master" }
+[patch.crates-io.win_dbg_logger]
+git = "https://github.com/wladwm/win_dbg_logger"
+branch = "master"
