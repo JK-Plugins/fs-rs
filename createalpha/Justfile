@@ -1,6 +1,7 @@
-PluginName       := "createalpha-rs"
-BundleIdentifier := "com.adobe.AfterEffects.{{PluginName}}"
-BinaryName       := replace(lowercase(PluginName), "-", "_")
+BuildName        := "createalpha-fs"
+PluginName       := "JK Create Alpha Fs"
+BundleIdentifier := "com.adobe.AfterEffects.{{BuildName}}"
+BinaryName       := replace(lowercase(BuildName), "-", "_")
 
 set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 
@@ -18,7 +19,7 @@ build:
 [windows]
 release:
     cargo build --release
-    Copy-Item -Force '{{TargetDir}}\release\{{BinaryName}}.dll' '{{TargetDir}}\release\{{PluginName}}.aex'
+    Copy-Item -Force '{{TargetDir}}\release\{{BinaryName}}.dll' '{{TargetDir}}\release\{{BuildName}}.aex'
     if (-not $env:NO_INSTALL) { \
         Start-Process PowerShell -Verb runAs -ArgumentList "-command Set-Location '{{source_directory()}}'; Copy-Item -Force '{{TargetDir}}\release\{{BinaryName}}.dll' 'C:\Program Files\Adobe\Common\Plug-ins\7.0\MediaCore\{{PluginName}}.aex'" \
     }
@@ -38,14 +39,14 @@ create_bundle profile TargetDir:
     #!/bin/bash
     set -e
     echo "Creating plugin bundle"
-    rm -Rf {{TargetDir}}/{{profile}}/{{PluginName}}.plugin
-    mkdir -p {{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/Resources
-    mkdir -p {{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/MacOS
+    rm -Rf "{{TargetDir}}/{{profile}}/{{PluginName}}.plugin"
+    mkdir -p "{{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/Resources"
+    mkdir -p "{{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/MacOS"
 
-    echo "eFKTFXTC" >> {{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/PkgInfo
-    /usr/libexec/PlistBuddy -c 'add CFBundlePackageType string eFKT' {{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/Info.plist
-    /usr/libexec/PlistBuddy -c 'add CFBundleSignature string FXTC' {{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/Info.plist
-    /usr/libexec/PlistBuddy -c 'add CFBundleIdentifier string {{BundleIdentifier}}' {{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/Info.plist
+    echo "eFKTFXTC" >> "{{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/PkgInfo"
+    /usr/libexec/PlistBuddy -c 'add CFBundlePackageType string eFKT' "{{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/Info.plist"
+    /usr/libexec/PlistBuddy -c 'add CFBundleSignature string FXTC' "{{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/Info.plist"
+    /usr/libexec/PlistBuddy -c 'add CFBundleIdentifier string {{BundleIdentifier}}' "{{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/Info.plist"
 
     if [ "{{profile}}" == "release" ]; then
         # Build universal binary
@@ -55,23 +56,22 @@ create_bundle profile TargetDir:
         cargo build --release --target x86_64-apple-darwin
         cargo build --release --target aarch64-apple-darwin
 
-        cp {{TargetDir}}/x86_64-apple-darwin/release/{{BinaryName}}.rsrc {{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/Resources/{{PluginName}}.rsrc
-        lipo {{TargetDir}}/{x86_64,aarch64}-apple-darwin/release/lib{{BinaryName}}.dylib -create -output {{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/MacOS/{{PluginName}}.dylib
-        mv {{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/MacOS/{{PluginName}}.dylib {{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/MacOS/{{PluginName}}
+        cp "{{TargetDir}}/x86_64-apple-darwin/release/{{BinaryName}}.rsrc" "{{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/Resources/{{PluginName}}.rsrc"
+        lipo "{{TargetDir}}/{x86_64,aarch64}-apple-darwin/release/lib{{BinaryName}}.dylib" -create -output "{{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/MacOS/{{PluginName}}.dylib"
+        mv "{{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/MacOS/{{PluginName}}.dylib" "{{TargetDir}}/{{profile}}/{{PluginName}}"
     else
-        cp {{TargetDir}}/{{profile}}/{{PluginName}}.rsrc {{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/Resources/{{PluginName}}.rsrc
-        cp {{TargetDir}}/{{profile}}/lib{{BinaryName}}.dylib {{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/MacOS/{{PluginName}}
+        cp "{{TargetDir}}/{{profile}}/{{BuildName}}.rsrc" "{{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/Resources/{{PluginName}}.rsrc"
+        cp "{{TargetDir}}/{{profile}}/lib{{BinaryName}}.dylib" "{{TargetDir}}/{{profile}}/{{PluginName}}.plugin/Contents/MacOS/{{PluginName}}"
     fi
 
     # codesign with the first development cert we can find using its hash
     if [ -z "$NO_SIGN" ]; then
-        # codesign --options runtime --timestamp -strict  --sign $( security find-identity -v -p codesigning | grep -m 1 "Apple Development" | awk -F ' ' '{print $2}' ) {{TargetDir}}/{{profile}}/{{PluginName}}.plugin
+        # codesign --options runtime --timestamp -strict  --sign $( security find-identity -v -p codesigning | grep -m 1 "Apple Development" | awk -F ' ' '{print $2}' ) "{{TargetDir}}/{{profile}}/{{PluginName}}.plugin"
         # Apple Developer Programに入る必要があるが、開発中である為AdHoc署名で十分
-        codesign --options runtime --timestamp -strict  --sign - {{TargetDir}}/{{profile}}/{{PluginName}}.plugin
+        codesign --options runtime --timestamp -strict  --sign - "{{TargetDir}}/{{profile}}/{{PluginName}}.plugin"
     fi
 
     # Install
     if [ -z "$NO_INSTALL" ]; then
         sudo cp -rf "{{TargetDir}}/{{profile}}/{{PluginName}}.plugin" "/Library/Application Support/Adobe/Common/Plug-ins/7.0/MediaCore/"
     fi
-
