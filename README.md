@@ -1,5 +1,9 @@
 # fs-rs
 
+## About
+
+Those plugins are Rust port of the [F's Plugin](https://github.com/bryful/F-s-PluginsProjects).
+
 ## Prerequisites
 
 ### **LLVM**  
