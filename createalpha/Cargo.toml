@@ -3,6 +3,10 @@ name = "createalpha-fs"
 version = "0.0.1"
 edition = "2021"
 
+[package.metadata.jk_plugin]
+plugin_name = "JK Create Alpha Fs"
+identifier = "com.adobe.AfterEffects.createalpha-fs"
+
 [profile.release]
 debug = true
 
