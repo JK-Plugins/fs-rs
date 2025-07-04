@@ -3,6 +3,10 @@ name = "colorkey-fs"
 version = "0.0.1"
 edition = "2021"
 
+[package.metadata.jk_plugin]
+plugin_name = "JK Color Key Fs"
+identifier = "com.adobe.AfterEffects.colorkey-fs"
+
 [profile.release]
 debug = true
 

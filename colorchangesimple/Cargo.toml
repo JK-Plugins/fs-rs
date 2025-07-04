@@ -3,6 +3,10 @@ name = "colorchangesimple-fs"
 version = "0.0.1"
 edition = "2021"
 
+[package.metadata.jk_plugin]
+plugin_name = "JK Color Change Simple Fs"
+identifier = "com.adobe.AfterEffects.colorchangesimple-fs"
+
 [profile.release]
 debug = true
 
