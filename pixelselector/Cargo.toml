@@ -3,6 +3,10 @@ name = "pixelselector-fs"
 version = "0.0.1"
 edition = "2021"
 
+[package.metadata.jk_plugin]
+plugin_name = "JK Pixel Selector Fs"
+identifier = "com.adobe.AfterEffects.pixelselector-fs"
+
 [profile.release]
 debug = true
 

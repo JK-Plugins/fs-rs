@@ -46,13 +46,13 @@ setx AESDK_ROOT "C:\path\to\AfterEffects_SDK"
 
 Install Rust using [rustup](https://rustup.rs/).  
 
-### **Just**
+### **cargo-jk**
 
-We are using Just as build tool.
+We are implementing our original build tool.
 
 Install it with:
 ```bash
-cargo install just
+cargo install --git https://github.com/JK-Plugins/cargo-jk
 ```
 
 ## Build
@@ -60,5 +60,6 @@ cargo install just
 Run the following command to build the project:
 ```bash
 cd pixelselector
-just build
+cargo jk install
+# this is the same as `cargo jk build && cargo jk mv [plugin_path]`
 ```
