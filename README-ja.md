@@ -1,6 +1,6 @@
 # fs-rs
 
-[English](https://github.com/JK-Plugins/fs-rs)
+[English](./README.md) | [日本語](./README-ja.md)
 
 # 概要
 
