@@ -5,6 +5,7 @@ members = [
     "colorkey",
     "createalpha",
     "libs",
+    "opticaldiffusion",
     "pixelselector",
 ]
 

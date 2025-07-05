@@ -173,3 +173,7 @@ pub fn conv_8_to_32(p: &PF_Pixel) -> PF_PixelFloat {
         blue: (p.blue as f32 * 10000.0 / MAX_CHANNEL8 as f32 + 0.5) / 10000.0,
     }
 }
+
+pub fn get_luma(p: &PF_Pixel) -> f32 {
+    ((p.red as f32 * 0.29891) + (p.green as f32 * 0.58861) + (p.blue as f32 * 0.11448)) + 0.5
+}
