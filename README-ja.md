@@ -5,6 +5,7 @@
 # 概要
 
 このプラグインは [F's Plugin](https://github.com/bryful/F-s-PluginsProjects) を Rust に移植したものです。
+F's Plugin の機能を Rust で再実装することで、macOSの対応と高速化を目指しています。
 
 ## 前提条件
 
