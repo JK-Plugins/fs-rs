@@ -5,6 +5,7 @@
 ## About
 
 Those plugins are Rust port of the [F's Plugin](https://github.com/bryful/F-s-PluginsProjects).
+By re-implementing the functionality of F's Plugin in Rust, we aim to add macOS support and achieve higher performance.
 
 ## Prerequisites
 
