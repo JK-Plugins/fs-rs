@@ -66,6 +66,20 @@ pub fn round_byte_long(x: i32) -> u8 {
     temp as u8
 }
 
+/// 元の `RoundByteFpLong`。名前に反して**丸めない**。クランプしてから
+/// `(A_u_char)temp` でキャストするだけなので切り捨てになる。
+///
+/// ```c
+/// inline A_u_char RoundByteFpLong(PF_FpLong x) {
+///     PF_FpLong temp=x;
+///     if (temp<0)   temp=0;
+///     if (temp>PF_MAX_CHAN8) temp=PF_MAX_CHAN8;
+///     return (A_u_char)temp;
+/// }
+/// ```
+///
+/// ここで四捨五入していたせいで、元と最大 1 ずれる画素が出ていた
+/// (RGBAControl で 31049 px、AEXCompat の比較で判明)。
 pub fn round_byte_fp_long(x: f32) -> u8 {
     let mut temp = x;
     if temp < 0.0 {
@@ -74,9 +88,10 @@ pub fn round_byte_fp_long(x: f32) -> u8 {
     if temp > MAX_CHANNEL8 as f32 {
         temp = MAX_CHANNEL8 as f32;
     }
-    temp.round() as u8
+    temp as u8
 }
 
+/// 元の `RoundShortFpLong`。こちらも丸めずに切り捨てる。
 pub fn round_short_fp_long(x: f32) -> u16 {
     let mut temp = x;
     if temp < 0.0 {
@@ -85,7 +100,7 @@ pub fn round_short_fp_long(x: f32) -> u16 {
     if temp > MAX_CHANNEL16 as f32 {
         temp = MAX_CHANNEL16 as f32;
     }
-    temp.round() as u16
+    temp as u16
 }
 
 pub fn round_short(x: i32) -> u16 {
@@ -171,5 +186,41 @@ pub fn conv_8_to_32(p: &PF_Pixel) -> PF_PixelFloat {
         red: (p.red as f32 * 10000.0 / MAX_CHANNEL8 as f32 + 0.5) / 10000.0,
         green: (p.green as f32 * 10000.0 / MAX_CHANNEL8 as f32 + 0.5) / 10000.0,
         blue: (p.blue as f32 * 10000.0 / MAX_CHANNEL8 as f32 + 0.5) / 10000.0,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 元の Round* 系は名前に反して丸めず、クランプしてキャストするだけ。
+    /// つまり切り捨てになる。四捨五入にすると元と最大 1 ずれる。
+    #[test]
+    fn round_helpers_truncate_rather_than_round() {
+        assert_eq!(round_byte_fp_long(1.9), 1);
+        assert_eq!(round_byte_fp_long(0.999), 0);
+        assert_eq!(round_byte_fp_long(254.9), 254);
+        assert_eq!(round_short_fp_long(1.9), 1);
+        assert_eq!(round_short_fp_long(32767.9), 32767);
+    }
+
+    #[test]
+    fn round_helpers_clamp_to_the_channel_range() {
+        assert_eq!(round_byte_fp_long(-5.0), 0);
+        assert_eq!(round_byte_fp_long(300.0), MAX_CHANNEL8 as u8);
+        assert_eq!(round_short_fp_long(-1.0), 0);
+        assert_eq!(round_short_fp_long(1.0e9), MAX_CHANNEL16 as u16);
+        assert_eq!(round_byte_long(-1), 0);
+        assert_eq!(round_byte_long(999), MAX_CHANNEL8 as u8);
+        assert_eq!(round_short(-1), 0);
+        assert_eq!(round_short(1 << 20), MAX_CHANNEL16 as u16);
+    }
+
+    /// 元の RoundFpShort は 0..32 にクランプする (1.0 ではない)。
+    #[test]
+    fn round_fp_short_clamps_to_32() {
+        assert_eq!(round_fp_short(-1.0), 0.0);
+        assert_eq!(round_fp_short(5.5), 5.5);
+        assert_eq!(round_fp_short(100.0), 32.0);
     }
 }

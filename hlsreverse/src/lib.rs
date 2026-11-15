@@ -199,11 +199,17 @@ impl Plugin {
         let rev_l = params.get(Params::Lightness)?.as_checkbox()?.value();
         let rev_s = params.get(Params::Saturation)?.as_checkbox()?.value();
         // 元の GetParams: org_blend は取得後に /100 される。
-        let blend = params.get(Params::OrgBlend)?.as_float_slider()?.value() / 100.0;
+        let blend = params.get(Params::OrgBlend)?.as_float_slider()?.value() as f32 / 100.0;
 
         // 0..1 の RGB を HLS 経由で反転して返す。
-        let flip = move |r: f64, g: f64, b: f64| -> (f64, f64, f64) {
-            let mut hls = HLSA::from_rgb(r, g, b, 1.0);
+        //
+        // 型の幅を元に合わせるのが重要。元は PF_PixelFloat (f32) を RGBtoHLS に渡し、
+        // HLSA の中は PF_FpLong (f64)、HLStoRGB の戻りは再び PF_PixelFloat (f32) で
+        //   r.red = (PF_FpShort)R;
+        // と narrowing する。f64 のまま通すと 255 倍して切り捨てたとき 1 ずれる
+        // (AEXCompat で元と比べて 11458 px / 最大1 の差として出た)。
+        let flip = move |r: f32, g: f32, b: f32| -> (f32, f32, f32) {
+            let mut hls = HLSA::from_rgb(r as f64, g as f64, b as f64, 1.0);
             if rev_h {
                 hls.hue = 1.0 - hls.hue;
             }
@@ -214,7 +220,7 @@ impl Plugin {
                 hls.saturation = 1.0 - hls.saturation;
             }
             let (r2, g2, b2, _) = hls.to_rgb();
-            (r2, g2, b2)
+            (r2 as f32, g2 as f32, b2 as f32)
         };
 
         let progress_final = out_layer.height() as _;
@@ -237,8 +243,8 @@ impl Plugin {
              -> Result<(), Error> {
                 match (pixel, out_pixel) {
                     (ae::GenericPixel::Pixel8(p), ae::GenericPixelMut::Pixel8(out_pixel)) => {
-                        let m = MAX_CHANNEL8 as f64;
-                        let (r, g, b) = flip(p.red as f64 / m, p.green as f64 / m, p.blue as f64 / m);
+                        let m = MAX_CHANNEL8 as f32;
+                        let (r, g, b) = flip(p.red as f32 / m, p.green as f32 / m, p.blue as f32 / m);
                         out_pixel.alpha = p.alpha;
                         // 元は丸めずにキャストするので切り捨て。
                         let (r8, g8, b8) = ((m * r) as u8, (m * g) as u8, (m * b) as u8);
@@ -248,14 +254,14 @@ impl Plugin {
                             out_pixel.blue = b8;
                         } else {
                             let k = 1.0 - blend;
-                            out_pixel.red = round_byte_fp_long((p.red as f64 * blend + r8 as f64 * k) as f32);
-                            out_pixel.green = round_byte_fp_long((p.green as f64 * blend + g8 as f64 * k) as f32);
-                            out_pixel.blue = round_byte_fp_long((p.blue as f64 * blend + b8 as f64 * k) as f32);
+                            out_pixel.red = round_byte_fp_long(p.red as f32 * blend + r8 as f32 * k);
+                            out_pixel.green = round_byte_fp_long(p.green as f32 * blend + g8 as f32 * k);
+                            out_pixel.blue = round_byte_fp_long(p.blue as f32 * blend + b8 as f32 * k);
                         }
                     }
                     (ae::GenericPixel::Pixel16(p), ae::GenericPixelMut::Pixel16(out_pixel)) => {
-                        let m = MAX_CHANNEL16 as f64;
-                        let (r, g, b) = flip(p.red as f64 / m, p.green as f64 / m, p.blue as f64 / m);
+                        let m = MAX_CHANNEL16 as f32;
+                        let (r, g, b) = flip(p.red as f32 / m, p.green as f32 / m, p.blue as f32 / m);
                         out_pixel.alpha = p.alpha;
                         let (r16, g16, b16) = ((m * r) as u16, (m * g) as u16, (m * b) as u16);
                         if blend == 0.0 {
@@ -264,24 +270,24 @@ impl Plugin {
                             out_pixel.blue = b16;
                         } else {
                             let k = 1.0 - blend;
-                            out_pixel.red = round_short_fp_long((p.red as f64 * blend + r16 as f64 * k) as f32);
-                            out_pixel.green = round_short_fp_long((p.green as f64 * blend + g16 as f64 * k) as f32);
-                            out_pixel.blue = round_short_fp_long((p.blue as f64 * blend + b16 as f64 * k) as f32);
+                            out_pixel.red = round_short_fp_long(p.red as f32 * blend + r16 as f32 * k);
+                            out_pixel.green = round_short_fp_long(p.green as f32 * blend + g16 as f32 * k);
+                            out_pixel.blue = round_short_fp_long(p.blue as f32 * blend + b16 as f32 * k);
                         }
                     }
                     (ae::GenericPixel::PixelF32(p), ae::GenericPixelMut::PixelF32(out_pixel)) => {
                         // 32bit は 0..1 のままなので割らずに渡す。
-                        let (r, g, b) = flip(p.red as f64, p.green as f64, p.blue as f64);
+                        let (r, g, b) = flip(p.red, p.green, p.blue);
                         out_pixel.alpha = p.alpha;
                         if blend == 0.0 {
-                            out_pixel.red = r as f32;
-                            out_pixel.green = g as f32;
-                            out_pixel.blue = b as f32;
+                            out_pixel.red = r;
+                            out_pixel.green = g;
+                            out_pixel.blue = b;
                         } else {
                             let k = 1.0 - blend;
-                            out_pixel.red = (p.red as f64 * blend + r * k) as f32;
-                            out_pixel.green = (p.green as f64 * blend + g * k) as f32;
-                            out_pixel.blue = (p.blue as f64 * blend + b * k) as f32;
+                            out_pixel.red = p.red * blend + r * k;
+                            out_pixel.green = p.green * blend + g * k;
+                            out_pixel.blue = p.blue * blend + b * k;
                         }
                     }
                     _ => return Err(Error::BadCallbackParameter),
