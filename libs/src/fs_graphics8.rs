@@ -1,6 +1,9 @@
 // F's Plugin の 8bit 処理 (CFsGraph の *8 関数群) を整数演算のまま忠実に移植したもの。
-// 元の .aex と出力をビット単位で一致させることを目的にしているので、
-// 元実装のバグ（toWhiteMat8 の blue など）もあえてそのまま再現している。
+// 丸めや打ち切りの癖まで含めて元の整数演算をそのままなぞっている。
+//
+// 例外は toWhiteMat8 の blue で、元実装にある青チャンネルのバグは再現していない
+// （詳細はその関数のドキュメントコメント）。それ以外の箇所で元と出力が違ったら
+// 移植ミスを疑ってよい。
 //
 // ref: https://github.com/bryful/F-s-PluginsProjects/tree/master/Legacy/Project/FsLibrary
 //      FsMiniMax8.cpp / FsBlur.cpp / FsMat.cpp / FsGraphics.h / FsUtils.h
@@ -120,7 +123,29 @@ impl Image8 {
         }
     }
 
-    /// 元実装どおり blue の計算に green を使っている（バグの再現）
+    /// 白マットにする。3チャンネルを対称に扱う（元実装のバグはあえて再現しない）。
+    ///
+    /// 元実装（F's Plugins の FsMat.cpp）の `toWhiteMat8` は、blue の行だけ `p.blue`
+    /// ではなく `p.green` を読んでいる:
+    ///
+    /// ```c
+    /// p.red   = RoundByteLong( (p.red   * p.alpha)/255 + 255 - p.alpha );
+    /// p.green = RoundByteLong( (p.green * p.alpha)/255 + 255 - p.alpha );
+    /// p.blue  = RoundByteLong( (p.green * p.alpha)/255 + 255 - p.alpha );  // p.blue のはず
+    /// ```
+    ///
+    /// しかもこの `p.green` は1行上で代入済みの値なので、blue には白マット変換が
+    /// 二重にかかる。`toWhiteMat16` / `toWhiteMat32` も同じ。`Minimax` に負値を
+    /// 渡した経路だけで発火し、ズレ量は抽出マスクのアルファに依存する。
+    ///
+    /// AE 2023 実機で元の .aex と比較したときは、青だけが 36864 画素中 35357 画素で
+    /// 最大 41 ずれた（R は完全一致、G は最大 1）。黒画素では拡散レイヤーの青が
+    /// 0 ではなく 125 になる。見た目には青かぶりとして出る。
+    ///
+    /// 再現しない理由: matchName が元と別（`JK Optical Diffusion F's`）なので既存の
+    /// .aep がこちらを拾うことはなく、ドロップイン置き換えにならない。互換のために
+    /// 色の欠陥を持ち込む動機がないうえ、16/32bit 側（[`super::fs_graphics`]）も
+    /// 再現していないので、揃えないと深度で色が変わる。
     pub fn to_white_mat8(&mut self) {
         for p in &mut self.data {
             if (p.alpha as i32) < MAX8 {
@@ -130,11 +155,10 @@ impl Image8 {
                     p.blue = 255;
                 } else {
                     let a = p.alpha as i32;
-                    let r = p.red as i32;
-                    let g = p.green as i32;
-                    p.red = round_byte_long(r * a / MAX8 + MAX8 - a);
-                    p.green = round_byte_long(g * a / MAX8 + MAX8 - a);
-                    p.blue = round_byte_long(g * a / MAX8 + MAX8 - a);
+                    let to_white = |c: i32| round_byte_long(c * a / MAX8 + MAX8 - a);
+                    p.red = to_white(p.red as i32);
+                    p.green = to_white(p.green as i32);
+                    p.blue = to_white(p.blue as i32);
                 }
             }
         }
@@ -501,13 +525,37 @@ mod tests {
     }
 
     #[test]
-    fn white_mat_reproduces_blue_bug() {
+    fn white_mat_treats_the_three_channels_symmetrically() {
+        // 元実装は blue の行で「代入済みの」green を読むため、青にだけ白マット変換が
+        // 二重にかかる。ここでは各チャンネルを自分の値から一度だけ変換する。
+        let a = 128i32;
+        let to_white = |c: i32| round_byte_long(c * a / MAX8 + MAX8 - a);
+
         let mut img = Image8::new(1, 1);
-        img.data[0] = Px8::new(128, 0, 200, 0);
+        img.data[0] = Px8::new(a as u8, 10, 200, 30);
         img.to_white_mat8();
         let p = img.data[0];
-        assert_eq!(p.blue, p.green); // blue は green から計算される
-        assert_eq!(p.red, round_byte_long(255 - 128));
+
+        assert_eq!(p.red, to_white(10));
+        assert_eq!(p.green, to_white(200));
+        assert_eq!(p.blue, to_white(30));
+        // 元のバグが戻ると blue は to_white(to_white(200)) になる。
+        assert_ne!(p.blue, to_white(to_white(200) as i32));
+    }
+
+    #[test]
+    fn white_mat_roundtrip_keeps_grey_grey() {
+        // AE 実機比較で元との差が最初に露出したケース。黒画素・抽出マスク alpha=128。
+        // 元実装では往復後に青が 125 になり青かぶりとして出るが、ここでは 0 に戻る。
+        let mut img = Image8::new(1, 1);
+        img.data[0] = Px8::new(128, 0, 0, 0);
+        img.to_white_mat8();
+        let p = img.data[0];
+        assert_eq!((p.red, p.green, p.blue), (127, 127, 127));
+
+        img.from_white_mat8();
+        let p = img.data[0];
+        assert_eq!((p.red, p.green, p.blue), (0, 0, 0));
     }
 
     #[test]

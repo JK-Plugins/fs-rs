@@ -105,7 +105,10 @@ impl Image {
     }
 
     /// 白マットにする
-    /// （元の toWhiteMat8 は blue に green を使っているバグがあるが、ここでは正しく blue を使う）
+    ///
+    /// 元実装の `toWhiteMat32` は blue の行で `p.blue` ではなく（代入済みの）`p.green`
+    /// を読んでいて、青に変換が二重にかかる。ここでは正しく blue を使う。
+    /// 8bit 側 ([`super::fs_graphics8::Image8::to_white_mat8`]) も同じ判断で揃えている。
     pub fn to_white_mat(&mut self) {
         for p in &mut self.data {
             if p.alpha <= 0.0 {
