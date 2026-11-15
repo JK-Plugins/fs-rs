@@ -9,7 +9,19 @@ fn main() {
     const EFFECT_VERSION_MINOR: u32 = 0;
     const EFFECT_VERSION_PATCH: u32 = 1;
 
+    // メニューに出る表示名。これは自由に決められる。
     const EFFECT_NAME: &str = "JK Optical Diffusion F's";
+
+    // AE がエフェクトを同定するキー。元の F's OpticalDiffusion と同じ値にしてある
+    // ので、元を使っている既存の .aep はこのプラグインを読み込み、保存済みの
+    // パラメータ値がそのまま入る（AE は値をスロット順で復元する。26スロットの
+    // 順序・型・範囲が元と一致していることを確認済み）。
+    //
+    // この値を変えると既存プロジェクトとの互換が切れる。また、元の .aex と
+    // 同じ matchName なので両方を MediaCore に入れると AE が重複を警告し
+    // どちらが読まれるか不定になる。これは置き換えであって共存はしない。
+    // 元と出力を比較したいときは、元だけを別環境に入れて比べること。
+    const EFFECT_MATCH_NAME: &str = "F's OpticalDiffusion";
 
     pipl::plugin_build(vec![
         Property::Kind(PIPLType::AEEffect),
@@ -43,7 +55,7 @@ fn main() {
             OutFlags2::SupportsThreadedRendering |
             OutFlags2::SupportsGetFlattenedSequenceData
         ),
-        Property::AE_Effect_Match_Name(EFFECT_NAME),
+        Property::AE_Effect_Match_Name(EFFECT_MATCH_NAME),
         Property::AE_Reserved_Info(8),
         Property::AE_Effect_Support_URL("https://github.com/JK-Plugins"),
     ]);
