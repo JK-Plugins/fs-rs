@@ -1,11 +1,13 @@
 [workspace]
 members = [
+    "alphathreshold",
     "colorchange",
     "colorchangesimple",
     "colorkey",
     "createalpha",
     "libs",
     "opticaldiffusion",
+    "posterization8bit",
     "pixelselector",
 ]
 
