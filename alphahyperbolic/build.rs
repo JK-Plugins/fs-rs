@@ -12,17 +12,26 @@ fn main() {
     // メニューに出る表示名。
     const EFFECT_NAME: &str = "JK Alpha Hyperbolic F's";
 
-    // AE がエフェクトを同定するキー。元の F's AlphaHyperbolic と同じ値にしてあるので、
-    // 元を使っている既存の .aep はこのプラグインを読み込み、保存済みの値がそのまま入る。
+    // matchName は元の "F's AlphaHyperbolic" に揃えていない。
     //
-    // ここを揃えられるようになったのは curve_tolerance を 0.05 にしてから。0 のままだと
-    // valid_min が負のこのパラメータでは AE が値を復元せず既定値 5 に戻っていた
-    // (AE 2023 実機で確認)。SDK の PF_ADD_FLOAT_SLIDER は常に 0.05 を入れるので、
-    // 元のプラグインはこの問題を踏んでいない。
+    // 揃えると AE は元で保存した .aep をこのプラグインで開くが、唯一のパラメータ
+    // hyperbolic の値が復元されず既定値 5 に戻る (AE 2023 実機、record から
+    // verify まで通した状態で確認)。パラメータ構成は float / -10..50 / 既定 5 で
+    // 元と完全一致している。
     //
-    // 元と同じ matchName なので両方を MediaCore に入れると AE が重複を警告し、
-    // どちらが読まれるか不定になる。これは置き換えであって共存はしない。
-    const EFFECT_MATCH_NAME: &str = "F's AlphaHyperbolic";
+    // 切り分けで除外したもの:
+    //   - パラメータ id (enum 変体名のハッシュ) ... 変体名を変えても再現
+    //   - スライダー範囲が入力範囲より狭いこと ... 一致させても再現
+    //   - PiPL のバージョンと out_flags ... 元の他プラグインと完全同一
+    //   - curve_tolerance ... 0.05 (SDK が常に入れる値) にしても再現
+    //
+    // valid_min を 0 や -0.5 にすると復元できるという観測もあったが、あれは
+    // matchName が未共有でエフェクトが解決されず、プロジェクトの値がそのまま
+    // 見えていただけの誤判定だった。負の valid_min が条件かどうかは未確認。
+    //
+    // 値が黙って既定値に戻るのは互換が無いより悪い (ユーザーのプロジェクトの
+    // 見た目が勝手に変わる) ので、原因が分かるまで独立した matchName のままにする。
+    const EFFECT_MATCH_NAME: &str = "JK Alpha Hyperbolic F's";
 
     pipl::plugin_build(vec![
         Property::Kind(PIPLType::AEEffect),
