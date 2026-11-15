@@ -6,10 +6,12 @@ members = [
     "colorchangesimple",
     "colorkey",
     "createalpha",
+    "hlsreverse",
     "libs",
     "opticaldiffusion",
     "posterization8bit",
     "premultiply",
+    "rgbtoalpha",
     "pixelselector",
 ]
 
