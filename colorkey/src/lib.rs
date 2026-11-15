@@ -3,9 +3,12 @@ use after_effects::{self as ae};
 use libs::utils::{conv_16_to_8, conv_32_to_8, conv_8_to_16, conv_8_to_32, round_byte_fp_long};
 
 #[derive(Eq, PartialEq, Hash, Clone, Copy, Debug)]
+// 並び順は元の F's ColorKey のスロット順に合わせてある (color, float, color)。
+// matchName を元と共有しているので、AE は保存済みの値をスロット順で復元する。
+// ここを入れ替えると既存プロジェクトの値が別のパラメータに入る。
 enum Params {
-    Threshold,
     KeyColor,
+    Threshold,
     BackColor,
 }
 
@@ -26,20 +29,6 @@ impl AdobePluginGlobal for Plugin {
         _: OutData,
     ) -> Result<(), Error> {
         params.add(
-            Params::Threshold,
-            "threshold",
-            ae::FloatSliderDef::setup(|f| {
-                f.set_default(0.0);
-                f.set_precision(1); // 小数点以下の桁数
-                f.set_valid_min(0.0);
-                f.set_valid_max(100.0);
-                f.set_slider_min(0.0);
-                f.set_slider_max(100.0);
-                f.set_value(f.default());
-            }),
-        )?;
-
-        params.add(
             Params::KeyColor,
             "Key Color",
             ae::ColorDef::setup(|f| {
@@ -49,6 +38,20 @@ impl AdobePluginGlobal for Plugin {
                     blue: 0xFF,
                     alpha: 0xFF,
                 });
+                f.set_value(f.default());
+            }),
+        )?;
+
+        params.add(
+            Params::Threshold,
+            "threshold",
+            ae::FloatSliderDef::setup(|f| {
+                f.set_default(0.0);
+                f.set_precision(1); // 小数点以下の桁数
+                f.set_valid_min(0.0);
+                f.set_valid_max(100.0);
+                f.set_slider_min(0.0);
+                f.set_slider_max(100.0);
                 f.set_value(f.default());
             }),
         )?;
