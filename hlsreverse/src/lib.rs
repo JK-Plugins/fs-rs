@@ -244,7 +244,8 @@ impl Plugin {
                 match (pixel, out_pixel) {
                     (ae::GenericPixel::Pixel8(p), ae::GenericPixelMut::Pixel8(out_pixel)) => {
                         let m = MAX_CHANNEL8 as f32;
-                        let (r, g, b) = flip(p.red as f32 / m, p.green as f32 / m, p.blue as f32 / m);
+                        let (r, g, b) =
+                            flip(p.red as f32 / m, p.green as f32 / m, p.blue as f32 / m);
                         out_pixel.alpha = p.alpha;
                         // 元は丸めずにキャストするので切り捨て。
                         let (r8, g8, b8) = ((m * r) as u8, (m * g) as u8, (m * b) as u8);
@@ -254,14 +255,18 @@ impl Plugin {
                             out_pixel.blue = b8;
                         } else {
                             let k = 1.0 - blend;
-                            out_pixel.red = round_byte_fp_long(p.red as f32 * blend + r8 as f32 * k);
-                            out_pixel.green = round_byte_fp_long(p.green as f32 * blend + g8 as f32 * k);
-                            out_pixel.blue = round_byte_fp_long(p.blue as f32 * blend + b8 as f32 * k);
+                            out_pixel.red =
+                                round_byte_fp_long(p.red as f32 * blend + r8 as f32 * k);
+                            out_pixel.green =
+                                round_byte_fp_long(p.green as f32 * blend + g8 as f32 * k);
+                            out_pixel.blue =
+                                round_byte_fp_long(p.blue as f32 * blend + b8 as f32 * k);
                         }
                     }
                     (ae::GenericPixel::Pixel16(p), ae::GenericPixelMut::Pixel16(out_pixel)) => {
                         let m = MAX_CHANNEL16 as f32;
-                        let (r, g, b) = flip(p.red as f32 / m, p.green as f32 / m, p.blue as f32 / m);
+                        let (r, g, b) =
+                            flip(p.red as f32 / m, p.green as f32 / m, p.blue as f32 / m);
                         out_pixel.alpha = p.alpha;
                         let (r16, g16, b16) = ((m * r) as u16, (m * g) as u16, (m * b) as u16);
                         if blend == 0.0 {
@@ -270,9 +275,12 @@ impl Plugin {
                             out_pixel.blue = b16;
                         } else {
                             let k = 1.0 - blend;
-                            out_pixel.red = round_short_fp_long(p.red as f32 * blend + r16 as f32 * k);
-                            out_pixel.green = round_short_fp_long(p.green as f32 * blend + g16 as f32 * k);
-                            out_pixel.blue = round_short_fp_long(p.blue as f32 * blend + b16 as f32 * k);
+                            out_pixel.red =
+                                round_short_fp_long(p.red as f32 * blend + r16 as f32 * k);
+                            out_pixel.green =
+                                round_short_fp_long(p.green as f32 * blend + g16 as f32 * k);
+                            out_pixel.blue =
+                                round_short_fp_long(p.blue as f32 * blend + b16 as f32 * k);
                         }
                     }
                     (ae::GenericPixel::PixelF32(p), ae::GenericPixelMut::PixelF32(out_pixel)) => {

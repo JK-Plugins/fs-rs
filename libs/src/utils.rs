@@ -178,20 +178,59 @@ pub fn conv_8_to_16(p: &PF_Pixel) -> PF_Pixel16 {
     }
 }
 
+/// 元の FS_CONVERT8TO32。10000倍して四捨五入し、整数に落としてから
+/// 10000 で割る: つまり小数4桁に量子化される。`(long)` のキャストを
+/// 落とすと量子化されず、Lab 変換のように敏感な処理で 8bit 出力が 1
+/// ずれる。
+pub fn conv_8_to_32_channel(c: u8) -> f32 {
+    ((c as f64 * 10000.0 / MAX_CHANNEL8 as f64 + 0.5) as i64 as f64 / 10000.0) as f32
+}
+
+/// 元の FS_CONVERT16TO32。8bit 版と同じく小数4桁に量子化する。
+pub fn conv_16_to_32_channel(c: u16) -> f32 {
+    ((c as f64 * 10000.0 / MAX_CHANNEL16 as f64 + 0.5) as i64 as f64 / 10000.0) as f32
+}
+
 pub fn conv_8_to_32(p: &PF_Pixel) -> PF_PixelFloat {
-    //#define FS_CONVERT8TO32(A)      ((double)(long)((double)A*10000.0/(double)PF_MAX_CHAN8 + 0.5)/10000.0)
     PF_PixelFloat {
-        //convert to 32-bit float
-        alpha: (p.alpha as f32 * 10000.0 / MAX_CHANNEL8 as f32 + 0.5) / 10000.0,
-        red: (p.red as f32 * 10000.0 / MAX_CHANNEL8 as f32 + 0.5) / 10000.0,
-        green: (p.green as f32 * 10000.0 / MAX_CHANNEL8 as f32 + 0.5) / 10000.0,
-        blue: (p.blue as f32 * 10000.0 / MAX_CHANNEL8 as f32 + 0.5) / 10000.0,
+        alpha: conv_8_to_32_channel(p.alpha),
+        red: conv_8_to_32_channel(p.red),
+        green: conv_8_to_32_channel(p.green),
+        blue: conv_8_to_32_channel(p.blue),
+    }
+}
+
+pub fn conv_16_to_32(p: &PF_Pixel16) -> PF_PixelFloat {
+    PF_PixelFloat {
+        alpha: conv_16_to_32_channel(p.alpha),
+        red: conv_16_to_32_channel(p.red),
+        green: conv_16_to_32_channel(p.green),
+        blue: conv_16_to_32_channel(p.blue),
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// 元の FS_CONVERT8TO32 は小数4桁に量子化する。
+    #[test]
+    fn conv_8_to_32_quantises_to_four_decimals() {
+        // 1/255 = 0.00392156.. -> 0.0039
+        assert_eq!(conv_8_to_32_channel(1), 0.0039);
+        // 128/255 = 0.50196.. -> 0.502
+        assert_eq!(conv_8_to_32_channel(128), 0.502);
+        assert_eq!(conv_8_to_32_channel(0), 0.0);
+        assert_eq!(conv_8_to_32_channel(255), 1.0);
+    }
+
+    #[test]
+    fn conv_16_to_32_quantises_to_four_decimals() {
+        assert_eq!(conv_16_to_32_channel(0), 0.0);
+        // AE の 16bit は 0..32768 (PF_MAX_CHAN16)。
+        assert_eq!(conv_16_to_32_channel(MAX_CHANNEL16 as u16), 1.0);
+        assert_eq!(conv_16_to_32_channel(16384), 0.5);
+    }
 
     /// 元の Round* 系は名前に反して丸めず、クランプしてキャストするだけ。
     /// つまり切り捨てになる。四捨五入にすると元と最大 1 ずれる。

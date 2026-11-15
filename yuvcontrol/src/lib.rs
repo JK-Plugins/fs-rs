@@ -249,11 +249,7 @@ impl Plugin {
             let u = adjust_uv(u, amt_u);
             let v = adjust_uv(v, amt_v);
 
-            (
-                y + 1.402 * v,
-                y - 0.344 * u - 0.714 * v,
-                y + 1.772 * u,
-            )
+            (y + 1.402 * v, y - 0.344 * u - 0.714 * v, y + 1.772 * u)
         };
 
         let progress_final = out_layer.height() as _;
@@ -271,7 +267,12 @@ impl Plugin {
                     (ae::GenericPixel::Pixel8(_), ae::GenericPixelMut::Pixel8(out_pixel)) => {
                         let m = MAX_CHANNEL8 as f64;
                         if out_pixel.alpha == 0 {
-                            *out_pixel = ae::Pixel8 { alpha: 0, red: 0, green: 0, blue: 0 };
+                            *out_pixel = ae::Pixel8 {
+                                alpha: 0,
+                                red: 0,
+                                green: 0,
+                                blue: 0,
+                            };
                             return Ok(());
                         }
                         let a = out_pixel.alpha as f64 / m;
@@ -292,7 +293,12 @@ impl Plugin {
                     (ae::GenericPixel::Pixel16(_), ae::GenericPixelMut::Pixel16(out_pixel)) => {
                         let m = MAX_CHANNEL16 as f64;
                         if out_pixel.alpha == 0 {
-                            *out_pixel = ae::Pixel16 { alpha: 0, red: 0, green: 0, blue: 0 };
+                            *out_pixel = ae::Pixel16 {
+                                alpha: 0,
+                                red: 0,
+                                green: 0,
+                                blue: 0,
+                            };
                             return Ok(());
                         }
                         let a = out_pixel.alpha as f64 / m;

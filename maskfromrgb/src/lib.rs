@@ -234,8 +234,11 @@ impl Plugin {
                 match (pixel, out_pixel) {
                     (ae::GenericPixel::Pixel8(_), ae::GenericPixelMut::Pixel8(out_pixel)) => {
                         let m = MAX_CHANNEL8 as f32;
-                        let (mut r, mut g, mut b) =
-                            (out_pixel.red as f32, out_pixel.green as f32, out_pixel.blue as f32);
+                        let (mut r, mut g, mut b) = (
+                            out_pixel.red as f32,
+                            out_pixel.green as f32,
+                            out_pixel.blue as f32,
+                        );
                         let a = out_pixel.alpha as f32;
                         let v = if a == 0.0 {
                             0
@@ -263,8 +266,11 @@ impl Plugin {
                     }
                     (ae::GenericPixel::Pixel16(_), ae::GenericPixelMut::Pixel16(out_pixel)) => {
                         let m = MAX_CHANNEL16 as f32;
-                        let (mut r, mut g, mut b) =
-                            (out_pixel.red as f32, out_pixel.green as f32, out_pixel.blue as f32);
+                        let (mut r, mut g, mut b) = (
+                            out_pixel.red as f32,
+                            out_pixel.green as f32,
+                            out_pixel.blue as f32,
+                        );
                         let a = out_pixel.alpha as f32;
                         let v = if a == 0.0 {
                             0

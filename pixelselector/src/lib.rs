@@ -24,30 +24,102 @@ enum Params {
     OptionFillColor,
     OptionFillOpacity,
     OptionsEnd,
-    Target1Start, Target1Enabled, Target1Color, Target1End,
-    Target2Start, Target2Enabled, Target2Color, Target2End,
-    Target3Start, Target3Enabled, Target3Color, Target3End,
-    Target4Start, Target4Enabled, Target4Color, Target4End,
-    Target5Start, Target5Enabled, Target5Color, Target5End,
-    Target6Start, Target6Enabled, Target6Color, Target6End,
-    Target7Start, Target7Enabled, Target7Color, Target7End,
-    Target8Start, Target8Enabled, Target8Color, Target8End,
-    Target9Start, Target9Enabled, Target9Color, Target9End,
-    Target10Start, Target10Enabled, Target10Color, Target10End,
-    Target11Start, Target11Enabled, Target11Color, Target11End,
-    Target12Start, Target12Enabled, Target12Color, Target12End,
-    Target13Start, Target13Enabled, Target13Color, Target13End,
-    Target14Start, Target14Enabled, Target14Color, Target14End,
-    Target15Start, Target15Enabled, Target15Color, Target15End,
-    Target16Start, Target16Enabled, Target16Color, Target16End,
-    Target17Start, Target17Enabled, Target17Color, Target17End,
-    Target18Start, Target18Enabled, Target18Color, Target18End,
-    Target19Start, Target19Enabled, Target19Color, Target19End,
-    Target20Start, Target20Enabled, Target20Color, Target20End,
-    Target21Start, Target21Enabled, Target21Color, Target21End,
-    Target22Start, Target22Enabled, Target22Color, Target22End,
-    Target23Start, Target23Enabled, Target23Color, Target23End,
-    Target24Start, Target24Enabled, Target24Color, Target24End,
+    Target1Start,
+    Target1Enabled,
+    Target1Color,
+    Target1End,
+    Target2Start,
+    Target2Enabled,
+    Target2Color,
+    Target2End,
+    Target3Start,
+    Target3Enabled,
+    Target3Color,
+    Target3End,
+    Target4Start,
+    Target4Enabled,
+    Target4Color,
+    Target4End,
+    Target5Start,
+    Target5Enabled,
+    Target5Color,
+    Target5End,
+    Target6Start,
+    Target6Enabled,
+    Target6Color,
+    Target6End,
+    Target7Start,
+    Target7Enabled,
+    Target7Color,
+    Target7End,
+    Target8Start,
+    Target8Enabled,
+    Target8Color,
+    Target8End,
+    Target9Start,
+    Target9Enabled,
+    Target9Color,
+    Target9End,
+    Target10Start,
+    Target10Enabled,
+    Target10Color,
+    Target10End,
+    Target11Start,
+    Target11Enabled,
+    Target11Color,
+    Target11End,
+    Target12Start,
+    Target12Enabled,
+    Target12Color,
+    Target12End,
+    Target13Start,
+    Target13Enabled,
+    Target13Color,
+    Target13End,
+    Target14Start,
+    Target14Enabled,
+    Target14Color,
+    Target14End,
+    Target15Start,
+    Target15Enabled,
+    Target15Color,
+    Target15End,
+    Target16Start,
+    Target16Enabled,
+    Target16Color,
+    Target16End,
+    Target17Start,
+    Target17Enabled,
+    Target17Color,
+    Target17End,
+    Target18Start,
+    Target18Enabled,
+    Target18Color,
+    Target18End,
+    Target19Start,
+    Target19Enabled,
+    Target19Color,
+    Target19End,
+    Target20Start,
+    Target20Enabled,
+    Target20Color,
+    Target20End,
+    Target21Start,
+    Target21Enabled,
+    Target21Color,
+    Target21End,
+    Target22Start,
+    Target22Enabled,
+    Target22Color,
+    Target22End,
+    Target23Start,
+    Target23Enabled,
+    Target23Color,
+    Target23End,
+    Target24Start,
+    Target24Enabled,
+    Target24Color,
+    Target24End,
     Level,
     Disp,
 }
@@ -56,30 +128,150 @@ const TARGET_COUNT: usize = 24;
 
 /// [group_start, enabled, color, group_end] を target1..24 の順に並べたもの。
 const TARGETS: [[Params; 4]; TARGET_COUNT] = [
-    [Params::Target1Start, Params::Target1Enabled, Params::Target1Color, Params::Target1End],
-    [Params::Target2Start, Params::Target2Enabled, Params::Target2Color, Params::Target2End],
-    [Params::Target3Start, Params::Target3Enabled, Params::Target3Color, Params::Target3End],
-    [Params::Target4Start, Params::Target4Enabled, Params::Target4Color, Params::Target4End],
-    [Params::Target5Start, Params::Target5Enabled, Params::Target5Color, Params::Target5End],
-    [Params::Target6Start, Params::Target6Enabled, Params::Target6Color, Params::Target6End],
-    [Params::Target7Start, Params::Target7Enabled, Params::Target7Color, Params::Target7End],
-    [Params::Target8Start, Params::Target8Enabled, Params::Target8Color, Params::Target8End],
-    [Params::Target9Start, Params::Target9Enabled, Params::Target9Color, Params::Target9End],
-    [Params::Target10Start, Params::Target10Enabled, Params::Target10Color, Params::Target10End],
-    [Params::Target11Start, Params::Target11Enabled, Params::Target11Color, Params::Target11End],
-    [Params::Target12Start, Params::Target12Enabled, Params::Target12Color, Params::Target12End],
-    [Params::Target13Start, Params::Target13Enabled, Params::Target13Color, Params::Target13End],
-    [Params::Target14Start, Params::Target14Enabled, Params::Target14Color, Params::Target14End],
-    [Params::Target15Start, Params::Target15Enabled, Params::Target15Color, Params::Target15End],
-    [Params::Target16Start, Params::Target16Enabled, Params::Target16Color, Params::Target16End],
-    [Params::Target17Start, Params::Target17Enabled, Params::Target17Color, Params::Target17End],
-    [Params::Target18Start, Params::Target18Enabled, Params::Target18Color, Params::Target18End],
-    [Params::Target19Start, Params::Target19Enabled, Params::Target19Color, Params::Target19End],
-    [Params::Target20Start, Params::Target20Enabled, Params::Target20Color, Params::Target20End],
-    [Params::Target21Start, Params::Target21Enabled, Params::Target21Color, Params::Target21End],
-    [Params::Target22Start, Params::Target22Enabled, Params::Target22Color, Params::Target22End],
-    [Params::Target23Start, Params::Target23Enabled, Params::Target23Color, Params::Target23End],
-    [Params::Target24Start, Params::Target24Enabled, Params::Target24Color, Params::Target24End],
+    [
+        Params::Target1Start,
+        Params::Target1Enabled,
+        Params::Target1Color,
+        Params::Target1End,
+    ],
+    [
+        Params::Target2Start,
+        Params::Target2Enabled,
+        Params::Target2Color,
+        Params::Target2End,
+    ],
+    [
+        Params::Target3Start,
+        Params::Target3Enabled,
+        Params::Target3Color,
+        Params::Target3End,
+    ],
+    [
+        Params::Target4Start,
+        Params::Target4Enabled,
+        Params::Target4Color,
+        Params::Target4End,
+    ],
+    [
+        Params::Target5Start,
+        Params::Target5Enabled,
+        Params::Target5Color,
+        Params::Target5End,
+    ],
+    [
+        Params::Target6Start,
+        Params::Target6Enabled,
+        Params::Target6Color,
+        Params::Target6End,
+    ],
+    [
+        Params::Target7Start,
+        Params::Target7Enabled,
+        Params::Target7Color,
+        Params::Target7End,
+    ],
+    [
+        Params::Target8Start,
+        Params::Target8Enabled,
+        Params::Target8Color,
+        Params::Target8End,
+    ],
+    [
+        Params::Target9Start,
+        Params::Target9Enabled,
+        Params::Target9Color,
+        Params::Target9End,
+    ],
+    [
+        Params::Target10Start,
+        Params::Target10Enabled,
+        Params::Target10Color,
+        Params::Target10End,
+    ],
+    [
+        Params::Target11Start,
+        Params::Target11Enabled,
+        Params::Target11Color,
+        Params::Target11End,
+    ],
+    [
+        Params::Target12Start,
+        Params::Target12Enabled,
+        Params::Target12Color,
+        Params::Target12End,
+    ],
+    [
+        Params::Target13Start,
+        Params::Target13Enabled,
+        Params::Target13Color,
+        Params::Target13End,
+    ],
+    [
+        Params::Target14Start,
+        Params::Target14Enabled,
+        Params::Target14Color,
+        Params::Target14End,
+    ],
+    [
+        Params::Target15Start,
+        Params::Target15Enabled,
+        Params::Target15Color,
+        Params::Target15End,
+    ],
+    [
+        Params::Target16Start,
+        Params::Target16Enabled,
+        Params::Target16Color,
+        Params::Target16End,
+    ],
+    [
+        Params::Target17Start,
+        Params::Target17Enabled,
+        Params::Target17Color,
+        Params::Target17End,
+    ],
+    [
+        Params::Target18Start,
+        Params::Target18Enabled,
+        Params::Target18Color,
+        Params::Target18End,
+    ],
+    [
+        Params::Target19Start,
+        Params::Target19Enabled,
+        Params::Target19Color,
+        Params::Target19End,
+    ],
+    [
+        Params::Target20Start,
+        Params::Target20Enabled,
+        Params::Target20Color,
+        Params::Target20End,
+    ],
+    [
+        Params::Target21Start,
+        Params::Target21Enabled,
+        Params::Target21Color,
+        Params::Target21End,
+    ],
+    [
+        Params::Target22Start,
+        Params::Target22Enabled,
+        Params::Target22Color,
+        Params::Target22End,
+    ],
+    [
+        Params::Target23Start,
+        Params::Target23Enabled,
+        Params::Target23Color,
+        Params::Target23End,
+    ],
+    [
+        Params::Target24Start,
+        Params::Target24Enabled,
+        Params::Target24Color,
+        Params::Target24End,
+    ],
 ];
 
 /// targetColor の既定色。元の PixelSelector_def.h の pr_colorDef を i % 16 で
@@ -104,9 +296,8 @@ const COLOR_DEF: [[u8; 3]; 16] = [
 ];
 
 const DISP_OPTIONS: [&str; TARGET_COUNT] = [
-    "1", "2", "3", "4", "5", "6", "7", "8",
-    "9", "10", "11", "12", "13", "14", "15", "16",
-    "17", "18", "19", "20", "21", "22", "23", "24",
+    "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17",
+    "18", "19", "20", "21", "22", "23", "24",
 ];
 
 #[derive(Default)]
@@ -277,8 +468,7 @@ impl AdobePluginGlobal for Plugin {
 
 impl Plugin {
     fn about(&mut self, out_data: &mut OutData) {
-        out_data
-            .set_return_msg("fs-rs pixelselector");
+        out_data.set_return_msg("fs-rs pixelselector");
     }
 
     fn global_setup(&mut self, in_data: &InData) -> Result<(), ae::Error> {
@@ -370,7 +560,10 @@ impl Plugin {
         let reverse = params.get(Params::OptionReverse)?.as_checkbox()?.value();
         let fill = params.get(Params::OptionFill)?.as_checkbox()?.value();
         let fill_color = params.get(Params::OptionFillColor)?.as_color()?.value();
-        let fill_opacity = params.get(Params::OptionFillOpacity)?.as_float_slider()?.value();
+        let fill_opacity = params
+            .get(Params::OptionFillOpacity)?
+            .as_float_slider()?
+            .value();
         let level = params.get(Params::Level)?.as_float_slider()?.value();
 
         // 元: infoP->lv = RoundByteFpLong(PF_MAX_CHAN8 * (d/100))
@@ -394,7 +587,13 @@ impl Plugin {
         }
 
         let progress_final = out_layer.height() as _;
-        ae::pf::suites::WorldTransform::new()?.copy_hq(in_data.effect_ref(), &in_layer, &mut out_layer, None, None)?;
+        ae::pf::suites::WorldTransform::new()?.copy_hq(
+            in_data.effect_ref(),
+            &in_layer,
+            &mut out_layer,
+            None,
+            None,
+        )?;
 
         // 元 Exec: count が 0 なら CopyInToOut だけで iterate しない。
         if targets.is_empty() {

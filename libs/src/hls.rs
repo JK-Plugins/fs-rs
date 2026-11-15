@@ -135,7 +135,10 @@ mod tests {
         ] {
             let hls = HLSA::from_rgb(r, g, b, 1.0);
             let (r2, g2, b2, a2) = hls.to_rgb();
-            assert!(close(r, r2) && close(g, g2) && close(b, b2), "{r},{g},{b} -> {r2},{g2},{b2}");
+            assert!(
+                close(r, r2) && close(g, g2) && close(b, b2),
+                "{r},{g},{b} -> {r2},{g2},{b2}"
+            );
             assert!(close(a2, 1.0));
         }
     }
@@ -143,7 +146,12 @@ mod tests {
     #[test]
     fn to_rgb_with_zero_saturation_uses_lightness() {
         // 元の分岐: S == 0 なら L を3チャンネルに入れる。
-        let hls = HLSA { hue: 0.42, lightness: 0.3, saturation: 0.0, alpha: 0.5 };
+        let hls = HLSA {
+            hue: 0.42,
+            lightness: 0.3,
+            saturation: 0.0,
+            alpha: 0.5,
+        };
         assert_eq!(hls.to_rgb(), (0.3, 0.3, 0.3, 0.5));
     }
 

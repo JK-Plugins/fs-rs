@@ -221,7 +221,12 @@ impl Plugin {
                     (ae::GenericPixel::Pixel8(_), ae::GenericPixelMut::Pixel8(out_pixel)) => {
                         let max = MAX_CHANNEL8 as f64;
                         if out_pixel.alpha == 0 {
-                            *out_pixel = ae::Pixel8 { alpha: 0, red: 0, green: 0, blue: 0 };
+                            *out_pixel = ae::Pixel8 {
+                                alpha: 0,
+                                red: 0,
+                                green: 0,
+                                blue: 0,
+                            };
                             return Ok(());
                         }
                         let a = out_pixel.alpha as f64 / max;
@@ -234,7 +239,12 @@ impl Plugin {
                         // 0 除算になる (alpha=1, level=12 で起きる)。そのときは
                         // アルファ 0 と同じ扱いにして透明にする。
                         if va <= 0.0 {
-                            *out_pixel = ae::Pixel8 { alpha: 0, red: 0, green: 0, blue: 0 };
+                            *out_pixel = ae::Pixel8 {
+                                alpha: 0,
+                                red: 0,
+                                green: 0,
+                                blue: 0,
+                            };
                             return Ok(());
                         }
                         out_pixel.alpha = round_byte_long(va as i32);
@@ -257,7 +267,12 @@ impl Plugin {
                     (ae::GenericPixel::Pixel16(_), ae::GenericPixelMut::Pixel16(out_pixel)) => {
                         let max = MAX_CHANNEL16 as f64;
                         if out_pixel.alpha == 0 {
-                            *out_pixel = ae::Pixel16 { alpha: 0, red: 0, green: 0, blue: 0 };
+                            *out_pixel = ae::Pixel16 {
+                                alpha: 0,
+                                red: 0,
+                                green: 0,
+                                blue: 0,
+                            };
                             return Ok(());
                         }
                         let a = out_pixel.alpha as f64 / max;
@@ -267,14 +282,18 @@ impl Plugin {
 
                         let va = quantize(a, level, max);
                         if va <= 0.0 {
-                            *out_pixel = ae::Pixel16 { alpha: 0, red: 0, green: 0, blue: 0 };
+                            *out_pixel = ae::Pixel16 {
+                                alpha: 0,
+                                red: 0,
+                                green: 0,
+                                blue: 0,
+                            };
                             return Ok(());
                         }
                         out_pixel.alpha = round_short(va as i32);
 
-                        let unmat = |c: f64| {
-                            round_short((quantize(c, level, max) * max / va + 0.5) as i32)
-                        };
+                        let unmat =
+                            |c: f64| round_short((quantize(c, level, max) * max / va + 0.5) as i32);
                         if gray_only {
                             let y = 0.299 * r + 0.587 * g + 0.114 * b;
                             let v = unmat(y);

@@ -201,8 +201,18 @@ impl Plugin {
     ) -> Result<(), Error> {
         // 元の GetParams: ポップアップ 1=白 2=黒 3=指定色。
         let col = match params.get(Params::FillMode)?.as_popup()?.value() {
-            1 => ae::Pixel8 { alpha: 0xFF, red: 0xFF, green: 0xFF, blue: 0xFF },
-            2 => ae::Pixel8 { alpha: 0xFF, red: 0x00, green: 0x00, blue: 0x00 },
+            1 => ae::Pixel8 {
+                alpha: 0xFF,
+                red: 0xFF,
+                green: 0xFF,
+                blue: 0xFF,
+            },
+            2 => ae::Pixel8 {
+                alpha: 0xFF,
+                red: 0x00,
+                green: 0x00,
+                blue: 0x00,
+            },
             _ => params.get(Params::CustomColor)?.as_color()?.value(),
         };
         let rev = params.get(Params::Reverse)?.as_checkbox()?.value();
@@ -246,7 +256,8 @@ impl Plugin {
                     (ae::GenericPixel::Pixel16(p), ae::GenericPixelMut::Pixel16(out_pixel)) => {
                         // 元: v = ((r*77) + (g*151) + (b*28)) / 256 を先に切り捨ててから
                         // v * alpha / MAX_CHAN16。8bit 版と割る順序が違う。
-                        let v = (p.red as i64 * 77 + p.green as i64 * 151 + p.blue as i64 * 28) / 256;
+                        let v =
+                            (p.red as i64 * 77 + p.green as i64 * 151 + p.blue as i64 * 28) / 256;
                         let v = v * p.alpha as i64 / MAX_CHANNEL16 as i64;
                         out_pixel.red = col16.red;
                         out_pixel.green = col16.green;

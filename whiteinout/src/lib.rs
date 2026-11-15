@@ -244,7 +244,11 @@ impl Plugin {
                             };
                             (f(out_pixel.red), f(out_pixel.green), f(out_pixel.blue))
                         } else {
-                            (MAX_CHANNEL16 as u16, MAX_CHANNEL16 as u16, MAX_CHANNEL16 as u16)
+                            (
+                                MAX_CHANNEL16 as u16,
+                                MAX_CHANNEL16 as u16,
+                                MAX_CHANNEL16 as u16,
+                            )
                         };
                         out_pixel.red = r;
                         out_pixel.green = g;

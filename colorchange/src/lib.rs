@@ -576,7 +576,11 @@ impl Plugin {
         // すでに8bit単位なので変換は要らない。パーセントから換算していたときは
         // 0..100 を 0..255 に写していたため、到達できない8bit値があり、丸めも
         // 切り捨てだった (元の F's ColorChange は RoundByteLong(idx) でそのまま使う)。
-        let level = params.get(Params::Level)?.as_slider()?.value().clamp(0, MAX_CHANNEL8 as i32) as u8;
+        let level = params
+            .get(Params::Level)?
+            .as_slider()?
+            .value()
+            .clamp(0, MAX_CHANNEL8 as i32) as u8;
 
         let color_pairs = Plugin::collect_enabled_color_pairs(params)?;
 
