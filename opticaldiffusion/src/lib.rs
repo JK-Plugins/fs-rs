@@ -1,12 +1,10 @@
-use after_effects::{
-    self as ae,
-    sys::{PF_FpLong, PF_PixelFloat},
-};
+mod od_core;
 
-use libs::{
-    hls::HLSA,
-    utils::{abs, conv_32_to_8, conv_8_to_32, get_luma, round_byte_long},
-};
+use after_effects as ae;
+
+use crate::od_core::{process, process8, BlendMode, OdParams};
+use libs::fs_graphics::{Image, PixelF};
+use libs::fs_graphics8::{Image8, Px8};
 
 #[derive(Eq, PartialEq, Hash, Clone, Copy, Debug)]
 enum Params {
@@ -283,8 +281,8 @@ impl AdobePluginGlobal for Plugin {
                     "Color 5",
                     ae::ColorDef::setup(|f| {
                         f.set_default(ae::Pixel8 {
-                            red: 0x00,
-                            green: 0xFF,
+                            red: 0xFF,
+                            green: 0x00,
                             blue: 0xFF,
                             alpha: 0xFF,
                         });
@@ -400,14 +398,9 @@ impl AdobePluginGlobal for Plugin {
             Params::BlendMode,
             "Blend Mode",
             ae::PopupDef::setup(|f| {
-                f.set_default(2);
+                f.set_options(&BlendMode::NAMES);
+                f.set_default(BlendMode::DEFAULT);
                 f.set_value(f.default());
-                f.set_options(&["Normal", "Lighten", "Darken", "Screen", "Multiply"]);
-                // f.add_item("Normal");
-                // f.add_item("Lighten");
-                // f.add_item("Darken");
-                // f.add_item("Screen");
-                // f.add_item("Multiply");
             }),
         )?;
 
@@ -478,7 +471,7 @@ impl AdobePluginGlobal for Plugin {
 
 impl Plugin {
     fn about(&mut self, out_data: &mut OutData) {
-        out_data.set_return_msg("JK Optical Diffusion");
+        out_data.set_return_msg("JK Optical Diffusion F's");
     }
 
     fn global_setup(&mut self, in_data: &InData) -> Result<(), ae::Error> {
@@ -560,205 +553,144 @@ impl Plugin {
         Ok(())
     }
 
+    fn read_params(params: &mut ae::Parameters<Params>) -> Result<OdParams, Error> {
+        let use_count = params
+            .get(Params::UseCount)?
+            .as_slider()?
+            .value()
+            .clamp(0, 8) as usize;
+        let mut extract_colors = Vec::with_capacity(use_count);
+        for i in 0..use_count {
+            let Some(id) = Params::from_index(Params::Color1 as usize + i) else {
+                continue;
+            };
+            let c = params.get(id)?.as_color()?.value();
+            extract_colors.push([
+                c.red as f64 / 255.0,
+                c.green as f64 / 255.0,
+                c.blue as f64 / 255.0,
+            ]);
+        }
+
+        Ok(OdParams {
+            extract_enabled: params.get(Params::ExtractEnabled)?.as_checkbox()?.value(),
+            black_point: params.get(Params::BlackPoint)?.as_slider()?.value(),
+            white_point: params.get(Params::WhitePoint)?.as_slider()?.value(),
+            black_softness: params.get(Params::BlackSoftness)?.as_slider()?.value(),
+            white_softness: params.get(Params::WhiteSoftness)?.as_slider()?.value(),
+            invert: params.get(Params::Invert)?.as_checkbox()?.value(),
+            color_range: params.get(Params::Range)?.as_float_slider()?.value(),
+            extract_colors,
+            minimax_1st: params.get(Params::Minimax1st)?.as_slider()?.value(),
+            minimax_2nd: params.get(Params::Minimax2nd)?.as_slider()?.value(),
+            blur: params.get(Params::Blur)?.as_float_slider()?.value(),
+            blend_mode: BlendMode::from_popup(params.get(Params::BlendMode)?.as_popup()?.value()),
+            blend_opacity: params.get(Params::BlendOpacity)?.as_float_slider()?.value(),
+            noise: params.get(Params::Noise)?.as_float_slider()?.value(),
+        })
+    }
+
     fn do_render(
         &self,
         in_data: &ae::InData,
         in_layer: ae::Layer,
-        mut out_layer: ae::Layer,
+        out_layer: ae::Layer,
         params: &mut ae::Parameters<Params>,
     ) -> Result<(), Error> {
-        // let level = params.get(Params::Level)?.as_float_slider()?.value();
-        // let color = params.get(Params::Color)?.as_color()?.value();
-        let extract_enabled = params.get(Params::ExtractEnabled)?.as_checkbox()?.value();
-        let mut black_point = params.get(Params::BlackPoint)?.as_slider()?.value();
-        let white_point = params.get(Params::WhitePoint)?.as_slider()?.value();
-        let mut black_softness = params.get(Params::BlackSoftness)?.as_slider()?.value();
-        let white_softness = params.get(Params::WhiteSoftness)?.as_slider()?.value();
-        let invert = params.get(Params::Invert)?.as_checkbox()?.value();
+        let od = Self::read_params(params)?;
 
-        if black_point > white_point {
-            let tmp = black_point - white_point;
-            black_point -= tmp;
-            if black_point < 0 {
-                black_point = 0;
+        let (w, h) = (out_layer.width(), out_layer.height());
+        let (in_w, in_h) = (in_layer.width(), in_layer.height());
+        let depth = out_layer.bit_depth();
+        if in_layer.bit_depth() != depth {
+            return Err(Error::BadCallbackParameter);
+        }
+
+        // ノイズのシードは元と同じくフレーム番号 (current_time / time_step)
+        let (time, step) = (in_data.current_time(), in_data.time_step());
+        let frame = if time >= 0 && step > 0 {
+            (time / step) as u32
+        } else {
+            0
+        };
+
+        // 8bit は元の .aex と一致させるため整数演算の実装を使う
+        if depth == 8 {
+            let mut src = Image8::new(w, h);
+            for y in 0..h.min(in_h) {
+                for x in 0..w.min(in_w) {
+                    let p = in_layer.as_pixel8(x, y);
+                    *src.get_mut(x, y) = Px8::new(p.alpha, p.red, p.green, p.blue);
+                }
             }
-            black_softness -= tmp;
-            if black_softness < 0 {
-                black_softness = 0;
+            let dst = process8(&src, &od, frame);
+            for y in 0..h {
+                for x in 0..w {
+                    let p = dst.get(x, y);
+                    *out_layer.as_pixel8_mut(x, y) = ae::Pixel8 {
+                        alpha: p.alpha,
+                        red: p.red,
+                        green: p.green,
+                        blue: p.blue,
+                    };
+                }
             }
-        }
-
-        let range = params.get(Params::Range)?.as_float_slider()?.value() as i32;
-        let use_count = params.get(Params::UseCount)?.as_slider()?.value();
-        // let color1 = params.get(Params::Color1)?.as_color()?.value();
-        // let color2 = params.get(Params::Color2)?.as_color()?.value();
-        // let color3 = params.get(Params::Color3)?.as_color()?.value();
-        // let color4 = params.get(Params::Color4)?.as_color()?.value();
-        // let color5 = params.get(Params::Color5)?.as_color()?.value();
-        // let color6 = params.get(Params::Color6)?.as_color()?.value();
-        // let color7 = params.get(Params::Color7)?.as_color()?.value();
-        // let color8 = params.get(Params::Color8)?.as_color()?.value();
-
-        // let mut p;
-        let mut p32;
-        let mut extract_colors = Vec::new();
-
-        let cnt = use_count;
-        for i in 0..cnt {
-            p32 = conv_8_to_32(
-                &params
-                    .get(
-                        match Params::from_index(Params::Color1 as usize + i as usize) {
-                            Some(p) => p,
-                            None => continue,
-                        },
-                    )?
-                    .as_color()?
-                    .value(),
-            );
-            extract_colors.push(HLSA::rgb_to_hls(&p32));
-        }
-
-        let minimax_1st = params.get(Params::Minimax1st)?.as_slider()?.value();
-        let minimax_2nd = params.get(Params::Minimax2nd)?.as_slider()?.value();
-        let blur = params.get(Params::Blur)?.as_float_slider()?.value();
-
-        let blend_mode = params.get(Params::BlendMode)?.as_popup()?.value();
-        let mut blend_opacity = params.get(Params::BlendOpacity)?.as_float_slider()?.value();
-
-        blend_opacity = blend_opacity / 100.0;
-        blend_opacity = blend_opacity.clamp(0.0, 1.0);
-
-        let mut noise = params.get(Params::Noise)?.as_float_slider()?.value();
-        noise = noise / 100.0;
-        noise = noise.clamp(0.0, 1.0);
-
-        if blend_opacity <= 0.0 {
-            noise = 0.0;
-        } else if blend_opacity < 0.25 {
-            noise = noise * blend_opacity / 0.25;
-        }
-
-        let progress_final = out_layer.height() as _;
-
-        if blend_opacity <= 0.0 {
-            ae::pf::suites::WorldTransform::new()?.copy_hq(
-                in_data.effect_ref(),
-                &in_layer,
-                &mut out_layer,
-                None,
-                None,
-            )?;
             return Ok(());
         }
 
-        ae::pf::suites::WorldTransform::new()?.copy_hq(
-            in_data.effect_ref(),
-            &in_layer,
-            &mut out_layer,
-            None,
-            None,
-        )?;
-
-        in_layer.iterate_with(
-            &mut out_layer,
-            0,
-            progress_final,
-            None,
-            |_x: i32,
-             _y: i32,
-             pixel: ae::GenericPixel,
-             out_pixel: ae::GenericPixelMut|
-             -> Result<(), Error> {
-                match (pixel, out_pixel) {
-                    (ae::GenericPixel::Pixel8(pixel), ae::GenericPixelMut::Pixel8(out_pixel)) => {
-                        // Write Your Code Here In Pixel8
-
-                        // 画像抽出
-                        if extract_enabled {
-                            // extract8
-                            let alpha = out_pixel.alpha;
-                            out_pixel.alpha = 0;
-
-                            // 元がこれ
-                            // A_long v = (A_long)( (( 0.29891 * (PF_FpLong)outP->red) + ( 0.58661 * (PF_FpLong)outP->green) + ( 0.11448 * (PF_FpLong)outP->blue)) * ((PF_FpLong)a / PF_MAX_CHAN8) +0.5);
-                            let luma = (get_luma(pixel) * (alpha as f32 / 255.0) + 0.5) as i32;
-                            let mut luma2 = luma;
-
-                            let b0 = black_point - black_softness;
-                            let b1 = black_point;
-                            let w0 = white_point;
-                            let w1 = white_point + white_softness;
-
-                            if luma < b0 {
-                                luma2 = 0;
-                            } else if luma < b1 {
-                                luma2 = 255 * (luma - b0) / (b1 - b0);
-                            } else if luma <= w0 {
-                                luma2 = 255;
-                            } else if luma < w1 {
-                                luma2 = 255 - (255 * (luma - w0) / (w1 - w0));
-                            } else {
-                                luma2 = 0;
-                            }
-
-                            if invert {
-                                luma2 = 255 - luma2;
-                            }
-
-                            out_pixel.alpha = round_byte_long(alpha as i32 * luma2 / 255);
-
-                            if use_count > 0 && out_pixel.alpha < 255 {
-                                let p32 = conv_8_to_32(pixel);
-                                let hlsa = HLSA::rgb_to_hls(&p32);
-
-                                for i in 0..(use_count as usize) {
-                                    let a_hue =
-                                        (abs(hlsa.hue - extract_colors[i].hue * 65536.0)) as i32;
-                                    let a_saturation =
-                                        abs(hlsa.saturation
-                                            - extract_colors[i].saturation * 65536.0)
-                                            as i32;
-                                    if a_hue <= range && a_saturation <= range {
-                                        let a_lightness =
-                                            (abs(hlsa.lightness
-                                                - extract_colors[i].lightness * 65536.0))
-                                                as i32;
-                                        if a_lightness < 0x4000 {
-                                            let a2 = round_byte_long(
-                                                255 * (0x4000 - a_lightness) / 0x4000,
-                                            );
-                                            if out_pixel.alpha < a2 {
-                                                out_pixel.alpha = a2;
-                                            }
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // Minimax iterateでやるべき？
-
-                        if minimax_1st != 0 {}
-
-                        if minimax_2nd != 0 {}
+        // 16/32bit: 0.0..=1.0 のストレートアルファの f32 で処理する
+        let mut src = Image::new(w, h);
+        for y in 0..h.min(in_h) {
+            for x in 0..w.min(in_w) {
+                *src.get_mut(x, y) = match depth {
+                    16 => {
+                        let p = in_layer.as_pixel16(x, y);
+                        let k = 1.0 / ae::MAX_CHANNEL16 as f32;
+                        PixelF::new(
+                            p.alpha as f32 * k,
+                            p.red as f32 * k,
+                            p.green as f32 * k,
+                            p.blue as f32 * k,
+                        )
                     }
-                    (ae::GenericPixel::Pixel16(pixel), ae::GenericPixelMut::Pixel16(out_pixel)) => {
-                        // Write Your Code Here In Pixel16
+                    32 => {
+                        let p = in_layer.as_pixel32(x, y);
+                        PixelF::new(p.alpha.clamp(0.0, 1.0), p.red, p.green, p.blue)
                     }
-                    (
-                        ae::GenericPixel::PixelF32(pixel),
-                        ae::GenericPixelMut::PixelF32(out_pixel),
-                    ) => {
-                        // Write Your Code Here In PixelF32
+                    _ => return Err(Error::BadCallbackParameter),
+                };
+            }
+        }
+
+        let dst = process(&src, &od, frame);
+
+        // 出力へ書き戻す
+        for y in 0..h {
+            for x in 0..w {
+                let p = dst.get(x, y);
+                match depth {
+                    16 => {
+                        let m = ae::MAX_CHANNEL16 as f32;
+                        let q = |c: f32| (c.clamp(0.0, 1.0) * m).round() as u16;
+                        *out_layer.as_pixel16_mut(x, y) = ae::Pixel16 {
+                            alpha: q(p.alpha),
+                            red: q(p.red),
+                            green: q(p.green),
+                            blue: q(p.blue),
+                        };
+                    }
+                    32 => {
+                        *out_layer.as_pixel32_mut(x, y) = ae::PixelF32 {
+                            alpha: p.alpha,
+                            red: p.red,
+                            green: p.green,
+                            blue: p.blue,
+                        };
                     }
                     _ => return Err(Error::BadCallbackParameter),
                 }
-
-                Ok(())
-            },
-        )?;
+            }
+        }
         Ok(())
     }
 }

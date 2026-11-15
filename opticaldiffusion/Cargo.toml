@@ -1,7 +1,11 @@
 [package]
-name = "opticaldiffusion"
+name = "opticaldiffusion-fs"
 version = "0.0.1"
 edition = "2021"
+
+[package.metadata.jk_plugin]
+plugin_name = "JK Optical Diffusion Fs"
+identifier = "com.adobe.AfterEffects.opticaldiffusion-fs"
 
 [profile.release]
 debug = true

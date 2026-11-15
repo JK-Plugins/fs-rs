@@ -1,5 +1,5 @@
-BuildName := "opticaldiffusion"
-PluginName := "JK Optical Diffusion"
+BuildName        := "opticaldiffusion-fs"
+PluginName       := "JK Optical Diffusion Fs"
 BundleIdentifier := "com.adobe.AfterEffects.{{BuildName}}"
 BinaryName       := replace(lowercase(BuildName), "-", "_")
 set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
