@@ -8,6 +8,7 @@ members = [
     "createalpha",
     "hlsreverse",
     "libs",
+    "graytocolorize",
     "graytonetocolorize",
     "graytocountourline",
     "colorchangeeng",
