@@ -8,6 +8,8 @@ members = [
     "createalpha",
     "hlsreverse",
     "libs",
+    "expscolors",
+    "expspos",
     "colorchangefrompoint",
     "videoline2nd",
     "videoline",

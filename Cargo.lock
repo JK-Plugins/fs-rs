@@ -499,6 +499,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 
 [[package]]
+name = "expscolors-fs"
+version = "0.0.1"
+dependencies = [
+ "after-effects",
+ "image",
+ "libs",
+ "log",
+ "pipl",
+ "win_dbg_logger",
+]
+
+[[package]]
+name = "expspos-fs"
+version = "0.0.1"
+dependencies = [
+ "after-effects",
+ "image",
+ "libs",
+ "log",
+ "pipl",
+ "win_dbg_logger",
+]
+
+[[package]]
 name = "exr"
 version = "1.73.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
