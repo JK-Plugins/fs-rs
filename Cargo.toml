@@ -8,6 +8,8 @@ members = [
     "createalpha",
     "hlsreverse",
     "libs",
+    "videoline2nd",
+    "videoline",
     "pixelextend",
     "targetgradradical",
     "targetgrad",
