@@ -173,6 +173,12 @@ impl AdobePluginGlobal for Plugin {
                         f.set_slider_min(0.0);
                         f.set_slider_max(100.0);
                         f.set_default(100.0);
+                        // SDK の PF_ADD_FLOAT_SLIDER は CURVE_TOLERANCE 引数を使わず、常に
+                        // AEFX_AUDIO_DEFAULT_CURVE_TOLERANCE (0.05) を入れる (Param_Utils.h:107)。
+                        // 元の F's の float スライダーは例外なくこの値なので揃える。0 のままだと
+                        // valid_min が負のパラメータで AE がプロジェクトから値を復元せず既定値に
+                        // 戻る (alphahyperbolic で実機確認)。
+                        f.set_curve_tolerance(0.05);
                         f.set_value(f.default());
                     }),
                 )?;
@@ -219,6 +225,7 @@ impl AdobePluginGlobal for Plugin {
                 f.set_slider_max(100.0);
                 f.set_precision(1);
                 f.set_default(1.0);
+                f.set_curve_tolerance(0.05);
                 f.set_value(f.default());
             }),
         )?;
