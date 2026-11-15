@@ -388,8 +388,11 @@ impl AdobePluginGlobal for Plugin {
                 f.set_valid_max(255.0);
                 f.set_slider_min(0.0);
                 f.set_slider_max(50.0);
-                f.set_curve_tolerance(30.0);
-                f.set_default(1.0);
+                // 元: CURVE_TOLERANCE=0, DFLT=30。移植時にこの2つを
+                // 取り違えていた (PF_ADD_FLOAT_SLIDER は CURVE_TOLERANCE 引数を
+                // 使わず常に 0.05 を入れる)。
+                f.set_curve_tolerance(0.05);
+                f.set_default(30.0);
                 f.set_precision(1);
                 f.set_display_flags(ae::ValueDisplayFlag::NONE);
                 f.set_phase(0.0);
