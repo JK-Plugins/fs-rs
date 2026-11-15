@@ -180,6 +180,22 @@ impl Image {
         }
     }
 
+    /// 元の `MinimaxA16` / `MinimaxA32`。アルファだけを対象にした最大・最小
+    /// フィルタで、[`Image::minimax`] と違って**マット処理をしない**
+    /// (元の `MinimaxA*` は `Minimax_alpha*` を直接呼ぶだけ)。RGB には触らない。
+    pub fn minimax_alpha(&mut self, value: i32, mode: ScanLine) {
+        if value == 0 || self.width == 0 || self.height == 0 {
+            return;
+        }
+        self.minimax_channel(
+            value.unsigned_abs() as usize,
+            value < 0,
+            mode,
+            |p| p.alpha,
+            |dst, src| dst.alpha = src.alpha,
+        );
+    }
+
     fn minimax_channel(
         &mut self,
         radius: usize,

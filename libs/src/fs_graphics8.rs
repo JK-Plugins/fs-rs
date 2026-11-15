@@ -221,6 +221,23 @@ impl Image8 {
         }
     }
 
+    /// 元の `MinimaxA8`。アルファだけを対象にした最大・最小フィルタ。
+    ///
+    /// [`Image8::minimax8`] と違って**マット処理をしない**。元の `MinimaxA8` は
+    /// `Minimax_alpha8` を直接呼ぶだけで、`toWhiteMat8` / `fromWhiteMat8` を
+    /// 通さないため。RGB には触らない。
+    pub fn minimax_alpha8(&mut self, value: i32) {
+        if value == 0 || self.width == 0 || self.height == 0 {
+            return;
+        }
+        self.minimax_pass(
+            value.unsigned_abs() as usize,
+            value < 0,
+            |p| p.alpha as i32,
+            |d, s| d.alpha = s.alpha,
+        );
+    }
+
     fn minimax_pass(
         &mut self,
         radius: usize,
@@ -516,6 +533,37 @@ pub fn percent_blend8(i: Px8, o: Px8, opacity: f32) -> Px8 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// `minimax_alpha8` は RGB を書き換えず、アルファだけを収縮・膨張する。
+    #[test]
+    fn minimax_alpha8_touches_only_alpha() {
+        let mut img = Image8::new(5, 1);
+        for x in 0..5 {
+            *img.get_mut(x, 0) = Px8::new(if x == 2 { 255 } else { 0 }, 10, 20, 30);
+        }
+        img.minimax_alpha8(1);
+        for x in 0..5 {
+            let p = img.get(x, 0);
+            assert_eq!((p.red, p.green, p.blue), (10, 20, 30), "rgb changed at {x}");
+        }
+        // 半径 1 の窓は [x-1, x] なので、中央とその右隣が 255 になる。
+        let alphas: Vec<u8> = (0..5).map(|x| img.get(x, 0).alpha).collect();
+        assert_eq!(alphas, vec![0, 0, 255, 255, 0]);
+    }
+
+    /// 収縮 (負の値) は孤立した不透明画素を消す。
+    #[test]
+    fn minimax_alpha8_erodes() {
+        let mut img = Image8::new(5, 1);
+        for x in 0..5 {
+            *img.get_mut(x, 0) = Px8::new(if x == 2 { 255 } else { 0 }, 0, 0, 0);
+        }
+        img.minimax_alpha8(-1);
+        assert!(
+            (0..5).all(|x| img.get(x, 0).alpha == 0),
+            "an isolated pixel should be eroded away"
+        );
+    }
 
     #[test]
     fn conv8to32_rounds_to_4_digits() {
