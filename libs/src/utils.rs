@@ -103,6 +103,32 @@ pub fn round_short_fp_long(x: f32) -> u16 {
     temp as u16
 }
 
+/// 元の RoundByteFpLong は PF_FpLong (double) を取る。f32 版に値を渡すと
+/// 丸め境界で 1 ずれることがあるので、元が double のまま計算している
+/// ところではこちらを使う。
+pub fn round_byte_fp_double(x: f64) -> u8 {
+    let mut temp = x;
+    if temp < 0.0 {
+        temp = 0.0;
+    }
+    if temp > MAX_CHANNEL8 as f64 {
+        temp = MAX_CHANNEL8 as f64;
+    }
+    temp as u8
+}
+
+/// 元の RoundShortFpLong の double 版。
+pub fn round_short_fp_double(x: f64) -> u16 {
+    let mut temp = x;
+    if temp < 0.0 {
+        temp = 0.0;
+    }
+    if temp > MAX_CHANNEL16 as f64 {
+        temp = MAX_CHANNEL16 as f64;
+    }
+    temp as u16
+}
+
 pub fn round_short(x: i32) -> u16 {
     let mut temp = x;
     if temp < 0 {
@@ -241,6 +267,16 @@ mod tests {
         assert_eq!(round_byte_fp_long(254.9), 254);
         assert_eq!(round_short_fp_long(1.9), 1);
         assert_eq!(round_short_fp_long(32767.9), 32767);
+    }
+
+    /// double 版も f32 版と同じく切り捨て・クランプ。
+    #[test]
+    fn double_round_helpers_truncate_and_clamp() {
+        assert_eq!(round_byte_fp_double(1.9), 1);
+        assert_eq!(round_byte_fp_double(-5.0), 0);
+        assert_eq!(round_byte_fp_double(1000.0), MAX_CHANNEL8 as u8);
+        assert_eq!(round_short_fp_double(1.9), 1);
+        assert_eq!(round_short_fp_double(1.0e9), MAX_CHANNEL16 as u16);
     }
 
     #[test]
