@@ -503,6 +503,24 @@ impl XorShift {
         Self { seed }
     }
 
+    /// 元の xorShiftDouble。0.0..=1.0。
+    ///
+    /// 整数版 ([`XorShift::next`]) と状態の進め方は同じだが、取り出し方が
+    /// 違う: 31bit に切って 0x7FFFFFFF で割る (整数版は >>16 して 15bit)。
+    pub fn next_double(&mut self) -> f64 {
+        let t = self.seed[0] ^ (self.seed[0] << 11);
+        self.seed[0] = self.seed[1];
+        self.seed[1] = self.seed[2];
+        self.seed[2] = self.seed[3];
+        self.seed[3] = (self.seed[3] ^ (self.seed[3] >> 19)) ^ (t ^ (t >> 8));
+        (self.seed[3] & 0x7FFF_FFFF) as f64 / 0x7FFF_FFFF as f64
+    }
+
+    /// 元の F_RAND_D1。-1.0..=1.0。
+    pub fn next_d1(&mut self) -> f64 {
+        2.0 * self.next_double() - 1.0
+    }
+
     /// 0..=RAND_MAX
     pub fn next(&mut self) -> u32 {
         let t = self.seed[0] ^ (self.seed[0] << 11);
@@ -633,6 +651,24 @@ mod tests {
             blend_multiply,
         ] {
             assert_eq!(f(i, o), o);
+        }
+    }
+
+    /// 整数版と double 版は同じ状態を進めるので、同じ種なら列が対応する。
+    #[test]
+    fn xorshift_double_is_deterministic_and_in_range() {
+        let mut a = XorShift::new(7);
+        let mut b = XorShift::new(7);
+        for _ in 0..64 {
+            let v = a.next_double();
+            assert_eq!(v, b.next_double());
+            assert!((0.0..=1.0).contains(&v), "out of range: {v}");
+        }
+        // F_RAND_D1 は -1..1
+        let mut c = XorShift::new(3);
+        for _ in 0..64 {
+            let v = c.next_d1();
+            assert!((-1.0..=1.0).contains(&v), "out of range: {v}");
         }
     }
 
