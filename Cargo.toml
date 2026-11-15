@@ -8,6 +8,8 @@ members = [
     "createalpha",
     "hlsreverse",
     "libs",
+    "toner",
+    "tone",
     "fillcolor",
     "togray",
     "alphafix",

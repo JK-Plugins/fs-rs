@@ -182,6 +182,13 @@ pub fn conv_32_to_8(p: &PF_PixelFloat) -> PF_Pixel {
     }
 }
 
+/// 元の FS_CONVERT32TO16 は FS_CONVERT8TO16(FS_CONVERT32TO8(A))、つまり
+/// 一度 8bit を経由する。16bit なのに 256 段しか出ないが、元の見た目を
+/// 引き継ぐためそのままにしてある。
+pub fn conv_32_to_16(p: &PF_PixelFloat) -> PF_Pixel16 {
+    conv_8_to_16(&conv_32_to_8(p))
+}
+
 pub fn conv_8_to_16(p: &PF_Pixel) -> PF_Pixel16 {
     PF_Pixel16 {
         //#define FS_CONVERT8TO16(A)		( (((A_long)(A) * PF_MAX_CHAN16) + PF_HALF_CHAN8) / PF_MAX_CHAN8 )
