@@ -39,6 +39,7 @@ impl AdobePluginGlobal for Plugin {
                 f.set_valid_max(50.0);
                 f.set_slider_min(-2.0);
                 f.set_slider_max(10.0);
+                f.set_curve_tolerance(1.0);
                 f.set_precision(1);
                 f.set_default(5.0);
                 f.set_value(f.default());
