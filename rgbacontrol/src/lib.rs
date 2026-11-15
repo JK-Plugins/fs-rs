@@ -1,0 +1,260 @@
+//! F's RGBAControl の移植。
+//!
+//! R/G/B/A をそれぞれ -100%..100% で持ち上げ下げする。各チャンネル独立で、
+//! 負なら 0 に向けて、正なら最大値に向けて線形に寄せる。
+//!
+//! ref: https://github.com/bryful/F-s-PluginsProjects/tree/master/Legacy/Project/RGBAControl
+
+use after_effects::{self as ae, MAX_CHANNEL16, MAX_CHANNEL8};
+
+use libs::utils::{round_byte_fp_long, round_short_fp_long};
+
+/// 元の各チャンネルの分岐。`amount` は -1.0..1.0。
+///
+/// ```c
+/// if (p == 0)      out = in;
+/// else if (p < 0)  out = in + in * p;            // 0 に寄せる
+/// else             out = in + (MAX - in) * p;    // MAX に寄せる
+/// ```
+fn adjust(value: f32, amount: f32, max: f32) -> f32 {
+    if amount == 0.0 {
+        value
+    } else if amount < 0.0 {
+        value + value * amount
+    } else {
+        value + (max - value) * amount
+    }
+}
+
+#[derive(Eq, PartialEq, Hash, Clone, Copy, Debug)]
+enum Params {
+    Red,
+    Green,
+    Blue,
+    Alpha,
+}
+
+#[derive(Default)]
+struct Plugin {}
+
+ae::define_effect!(Plugin, (), Params);
+
+impl AdobePluginGlobal for Plugin {
+    fn can_load(_host_name: &str, _host_version: &str) -> bool {
+        true
+    }
+
+    fn params_setup(
+        &self,
+        params: &mut ae::Parameters<Params>,
+        _in_data: InData,
+        _: OutData,
+    ) -> Result<(), Error> {
+        // 元: PF_ADD_FIXED(STR_RED, -100, 100, -100, 100, 0, 1, 0, 0, ID_RED_FIXED) を
+        // R/G/B/A の4つ。元は FIX_SLIDER だがリポジトリの他と揃えて float スライダー
+        // にしている (AE は型が変わっても保存値を復元する)。
+        for (p, name) in [
+            (Params::Red, "Red(%)"),
+            (Params::Green, "Green(%)"),
+            (Params::Blue, "Blue(%)"),
+            (Params::Alpha, "Alpha(%)"),
+        ] {
+            params.add(
+                p,
+                name,
+                ae::FloatSliderDef::setup(|f| {
+                    f.set_valid_min(-100.0);
+                    f.set_valid_max(100.0);
+                    f.set_slider_min(-100.0);
+                    f.set_slider_max(100.0);
+                    f.set_precision(1);
+                    f.set_curve_tolerance(0.05);
+                    f.set_default(0.0);
+                    f.set_value(f.default());
+                }),
+            )?;
+        }
+
+        Ok(())
+    }
+
+    fn handle_command(
+        &mut self,
+        cmd: ae::Command,
+        in_data: InData,
+        mut out_data: OutData,
+        params: &mut ae::Parameters<Params>,
+    ) -> Result<(), ae::Error> {
+        match cmd {
+            ae::Command::About => {
+                self.about(&mut out_data);
+            }
+            ae::Command::GlobalSetup => {
+                self.global_setup(&in_data)?;
+            }
+            ae::Command::Render {
+                in_layer,
+                out_layer,
+            } => {
+                self.legacy_render(&in_data, in_layer, out_layer, params)?;
+            }
+            ae::Command::SmartPreRender { extra } => {
+                self.smart_pre_render(&in_data, extra, params)?;
+            }
+            ae::Command::SmartRender { extra } => {
+                self.smart_render(&in_data, extra, params)?;
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+}
+
+impl Plugin {
+    fn about(&mut self, out_data: &mut OutData) {
+        out_data.set_return_msg("fs-rs rgbacontrol");
+    }
+
+    fn global_setup(&mut self, in_data: &InData) -> Result<(), ae::Error> {
+        win_dbg_logger::DEBUGGER_LOGGER.set_force_log_without_debugger(true);
+        log::info!("GlobalSetup");
+        // For Premiere - declare supported pixel formats
+        if in_data.is_premiere() {
+            let suite = ae::pf::suites::PixelFormat::new()?;
+
+            suite.clear_supported_pixel_formats(in_data.effect_ref())?;
+            let formats = [
+                ae::pr::PixelFormat::Bgra4444_8u,
+                ae::pr::PixelFormat::Bgra4444_16u,
+                ae::pr::PixelFormat::Bgra4444_32f,
+            ];
+            for x in formats {
+                suite.add_supported_pixel_format(in_data.effect_ref(), x)?;
+            }
+        }
+        Ok(())
+    }
+
+    fn legacy_render(
+        &mut self,
+        in_data: &InData,
+        in_layer: ae::Layer,
+        out_layer: ae::Layer,
+        params: &mut ae::Parameters<Params>,
+    ) -> Result<(), ae::Error> {
+        if !in_data.is_premiere() {
+            // We don't support non-SmartFX unless it's Premiere
+            return Err(Error::BadCallbackParameter);
+        }
+
+        self.do_render(in_data, in_layer, out_layer, params)?;
+
+        Ok(())
+    }
+
+    fn smart_pre_render(
+        &mut self,
+        in_data: &InData,
+        mut extra: ae::PreRenderExtra,
+        _params: &mut ae::Parameters<Params>,
+    ) -> Result<(), ae::Error> {
+        let req = extra.output_request();
+
+        if let Ok(in_result) = extra.callbacks().checkout_layer(
+            0,
+            0,
+            &req,
+            in_data.current_time(),
+            in_data.time_step(),
+            in_data.time_scale(),
+        ) {
+            let _ = extra.union_result_rect(in_result.result_rect.into());
+            let _ = extra.union_max_result_rect(in_result.max_result_rect.into());
+        }
+        Ok(())
+    }
+
+    fn smart_render(
+        &mut self,
+        in_data: &InData,
+        extra: ae::SmartRenderExtra,
+        params: &mut ae::Parameters<Params>,
+    ) -> Result<(), ae::Error> {
+        let cb = extra.callbacks();
+        let Some(input_world) = cb.checkout_layer_pixels(0)? else {
+            return Ok(());
+        };
+
+        if let Ok(Some(output_world)) = cb.checkout_output() {
+            self.do_render(in_data, input_world, output_world, params)?;
+        }
+
+        cb.checkin_layer_pixels(0)?;
+        Ok(())
+    }
+
+    fn do_render(
+        &self,
+        in_data: &ae::InData,
+        in_layer: ae::Layer,
+        mut out_layer: ae::Layer,
+        params: &mut ae::Parameters<Params>,
+    ) -> Result<(), Error> {
+        // 元の GetParams: PF_Fixed を 100<<16 で割って -1.0..1.0 にする。
+        let get = |p: Params, params: &mut ae::Parameters<Params>| -> Result<f32, Error> {
+            Ok(params.get(p)?.as_float_slider()?.value() as f32 / 100.0)
+        };
+        let amt_r = get(Params::Red, params)?;
+        let amt_g = get(Params::Green, params)?;
+        let amt_b = get(Params::Blue, params)?;
+        let amt_a = get(Params::Alpha, params)?;
+
+        let progress_final = out_layer.height() as _;
+        ae::pf::suites::WorldTransform::new()?.copy_hq(
+            in_data.effect_ref(),
+            &in_layer,
+            &mut out_layer,
+            None,
+            None,
+        )?;
+        in_layer.iterate_with(
+            &mut out_layer,
+            0,
+            progress_final,
+            None,
+            |_x: i32,
+             _y: i32,
+             pixel: ae::GenericPixel,
+             out_pixel: ae::GenericPixelMut|
+             -> Result<(), Error> {
+                match (pixel, out_pixel) {
+                    (ae::GenericPixel::Pixel8(p), ae::GenericPixelMut::Pixel8(out_pixel)) => {
+                        let m = MAX_CHANNEL8 as f32;
+                        out_pixel.alpha = round_byte_fp_long(adjust(p.alpha as f32, amt_a, m));
+                        out_pixel.red = round_byte_fp_long(adjust(p.red as f32, amt_r, m));
+                        out_pixel.green = round_byte_fp_long(adjust(p.green as f32, amt_g, m));
+                        out_pixel.blue = round_byte_fp_long(adjust(p.blue as f32, amt_b, m));
+                    }
+                    (ae::GenericPixel::Pixel16(p), ae::GenericPixelMut::Pixel16(out_pixel)) => {
+                        let m = MAX_CHANNEL16 as f32;
+                        out_pixel.alpha = round_short_fp_long(adjust(p.alpha as f32, amt_a, m));
+                        out_pixel.red = round_short_fp_long(adjust(p.red as f32, amt_r, m));
+                        out_pixel.green = round_short_fp_long(adjust(p.green as f32, amt_g, m));
+                        out_pixel.blue = round_short_fp_long(adjust(p.blue as f32, amt_b, m));
+                    }
+                    (ae::GenericPixel::PixelF32(p), ae::GenericPixelMut::PixelF32(out_pixel)) => {
+                        // 32bit の最大値は 1.0。
+                        out_pixel.alpha = adjust(p.alpha, amt_a, 1.0);
+                        out_pixel.red = adjust(p.red, amt_r, 1.0);
+                        out_pixel.green = adjust(p.green, amt_g, 1.0);
+                        out_pixel.blue = adjust(p.blue, amt_b, 1.0);
+                    }
+                    _ => return Err(Error::BadCallbackParameter),
+                }
+
+                Ok(())
+            },
+        )?;
+        Ok(())
+    }
+}

@@ -11,6 +11,7 @@ members = [
     "opticaldiffusion",
     "posterization8bit",
     "premultiply",
+    "rgbacontrol",
     "rgbtoalpha",
     "pixelselector",
 ]
