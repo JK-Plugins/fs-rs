@@ -131,17 +131,21 @@ impl AdobePluginGlobal for Plugin {
             "Option",
             false,
             |params| {
+                // 元のラベルは "反転する"。PF のパラメータ名は ASCII でないと
+                // AE 側で空文字になってしまうので英語にしている (元も PiPL 経由で
+                // 文字化けしている)。
                 params.add(
                     Params::OptionReverse,
-                    "反転する",
+                    "Reverse",
                     ae::CheckBoxDef::setup(|f| {
                         f.set_default(false);
                         f.set_value(f.default());
                     }),
                 )?;
+                // 元のラベルは "塗りつぶす"。
                 params.add(
                     Params::OptionFill,
-                    "塗りつぶす",
+                    "Fill",
                     ae::CheckBoxDef::setup(|f| {
                         f.set_default(false);
                         f.set_value(f.default());

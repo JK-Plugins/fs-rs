@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "alphahyperbolic",
     "alphathreshold",
     "colorchange",
     "colorchangesimple",
@@ -8,6 +9,7 @@ members = [
     "libs",
     "opticaldiffusion",
     "posterization8bit",
+    "premultiply",
     "pixelselector",
 ]
 
