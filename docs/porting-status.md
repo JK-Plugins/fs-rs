@@ -2,11 +2,11 @@
 
 元: [F's Plugins](https://github.com/bryful/F-s-PluginsProjects) の `Legacy/Project`。
 
-移植した 53 本はすべて、出荷されている .aex とパラメータ構成 (型・範囲・既定値・色・
+移植した 54 本はすべて、出荷されている .aex とパラメータ構成 (型・範囲・既定値・色・
 ポップアップ項目) が一致し、[AEXCompat](https://github.com/onmokoworks/AEXCompat) で
 画素を突き合わせてある。意図して元と違えているのはバグ修正ぶんだけ。
 
-以下は**まだ移植していない 58 本**の仕分け。`lines` は .cpp の行数、
+以下は**まだ移植していない 57 本**の仕分け。`lines` は .cpp の行数、
 `oracle` は元と画素比較する手段:
 
 | oracle | 意味 |
@@ -27,7 +27,6 @@
 | project | lines | oracle | needs | 双子 |
 |---|---|---|---|---|
 | EdgeLine-Hi | 586 | `smart` | `neighbor` `angle` | - |
-| sputteringSplash | 776 | `smart` | `neighbor` | - |
 
 ## B: 中くらい。既存の部品で足りるが読む量が増える
 
@@ -139,8 +138,8 @@
 - HLS (`hls`) と Lab (`lab`)
 - ブレンドモード各種 (`fs_graphics8`)
 - 飛び散りのスプライト表と描き方 (`sputtering`: 14x14 を 60 種類、
-  大きさごとの引き表、`sput_cells`)。sputteringSplash / sputteringAlpha /
-  sputteringCircle が同じものを使う
+  大きさごとの引き表、深度ごとの描画 `sput_draw`)。sputteringAlpha /
+  sputteringCircle も同じものを使う
 - 16bit の画素と合成 (`fs_graphics8::Px16` / `pixel_blend16`)
 - 角度と距離から XY のずれを出す `utils::rot_length` (元の CRotCalc)
 

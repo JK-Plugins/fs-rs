@@ -25,11 +25,10 @@
 //!
 //! ref: https://github.com/bryful/F-s-PluginsProjects/tree/master/Legacy/Project/sputteringRect
 
-use after_effects::{self as ae, MAX_CHANNEL16, MAX_CHANNEL8};
+use after_effects::{self as ae};
 use libs::fs_graphics::XorShift;
-use libs::fs_graphics8::{pixel_blend16, pixel_blend8, Px16, Px8};
-use libs::sputtering::{setup_sput_data, sput_cells, SPD_RAND_MAX};
-use libs::utils::{conv_8_to_16, conv_8_to_32, rot_length, round_fp_short_double};
+use libs::sputtering::{setup_sput_data, sput_draw, SPD_RAND_MAX};
+use libs::utils::rot_length;
 
 /// 元の UI_COLOR_MAX_V。
 const COLOR_COUNT: usize = 4;
@@ -467,144 +466,11 @@ impl Plugin {
                     continue;
                 }
                 let col = colors[(col_r.clamp(0, COLOR_COUNT as i64 - 1)) as usize];
-                match depth {
-                    8 => {
-                        let c = Px8::new(0, col.red, col.green, col.blue);
-                        sput_cells(idx, sx, sy, w as i32, h as i32, |px, py, v| {
-                            // 元: RoundByteFpShort (f32 で計算して 0..255 で切り捨て)。
-                            let (a, draw) = match v {
-                                None => (round_byte_f32(MAX_CHANNEL8 as f32 * op), true),
-                                Some(s) => {
-                                    let a = round_byte_f32(s as f32 * op);
-                                    (a, a > 0)
-                                }
-                            };
-                            if !draw {
-                                return;
-                            }
-                            let d = out_layer.as_pixel8_mut(px as usize, py as usize);
-                            let dd = Px8::new(d.alpha, d.red, d.green, d.blue);
-                            // 元: PixelBlend8(oD[adr], c) ―― 既にある画素が
-                            // src、新しい色が dst。順番が逆だと重なった
-                            // ところだけ値がずれる。
-                            let r = pixel_blend8(dd, Px8 { alpha: a, ..c });
-                            d.alpha = r.alpha;
-                            d.red = r.red;
-                            d.green = r.green;
-                            d.blue = r.blue;
-                        });
-                    }
-                    16 => {
-                        let c16 = conv_8_to_16(&col);
-                        let c = Px16::new(0, c16.red, c16.green, c16.blue);
-                        sput_cells(idx, sx, sy, w as i32, h as i32, |px, py, v| {
-                            let (a, draw) = match v {
-                                None => (
-                                    round_short_f64(MAX_CHANNEL16 as f32 * op),
-                                    true,
-                                ),
-                                Some(s) => {
-                                    // 元: RoundShortFpLong(CONVERT8TO16(v * opa))。
-                                    // CONVERT8TO16 の (long) で先に切り捨てられる。
-                                    let t = (s as f32 * op) as i64;
-                                    let a = round_short_f64(
-                                        ((t * MAX_CHANNEL16 as i64 + 128)
-                                            / MAX_CHANNEL8 as i64) as f32,
-                                    );
-                                    (a, a > 0)
-                                }
-                            };
-                            if !draw {
-                                return;
-                            }
-                            let d = out_layer.as_pixel16_mut(px as usize, py as usize);
-                            let dd = Px16::new(d.alpha, d.red, d.green, d.blue);
-                            let r = pixel_blend16(dd, Px16 { alpha: a, ..c });
-                            d.alpha = r.alpha;
-                            d.red = r.red;
-                            d.green = r.green;
-                            d.blue = r.blue;
-                        });
-                    }
-                    _ => {
-                        let c32 = conv_8_to_32(&col);
-                        sput_cells(idx, sx, sy, w as i32, h as i32, |px, py, v| {
-                            // 元: 1画素だけの分岐は丸めずに不透明度そのまま。
-                            let (a, draw) = match v {
-                                None => (op, true),
-                                Some(s) => {
-                                    let a = round_fp_short_double(
-                                        (s as f32 / MAX_CHANNEL8 as f32 * op) as f64,
-                                    );
-                                    (a, a > 0.0)
-                                }
-                            };
-                            if !draw {
-                                return;
-                            }
-                            let d = out_layer.as_pixel32_mut(px as usize, py as usize);
-                            let r = blend32(
-                                [d.alpha, d.red, d.green, d.blue],
-                                [a, c32.red, c32.green, c32.blue],
-                            );
-                            d.alpha = r[0];
-                            d.red = r[1];
-                            d.green = r[2];
-                            d.blue = r[3];
-                        });
-                    }
-                }
+                sput_draw(&out_layer, depth, idx, sx, sy, op, col);
             }
         }
         Ok(())
     }
-}
-
-/// 元の RoundByteFpShort (PF_FpShort = f32)。
-fn round_byte_f32(x: f32) -> u8 {
-    let t = if x < 0.0 {
-        0.0
-    } else if x > MAX_CHANNEL8 as f32 {
-        MAX_CHANNEL8 as f32
-    } else {
-        x
-    };
-    t as u8
-}
-
-/// 元の RoundShortFpLong に f32 の値を渡したとき。
-fn round_short_f64(x: f32) -> u16 {
-    let t = x as f64;
-    let t = if t < 0.0 {
-        0.0
-    } else if t > MAX_CHANNEL16 as f64 {
-        MAX_CHANNEL16 as f64
-    } else {
-        t
-    };
-    t as u16
-}
-
-/// 元の PixelBlend32 (a, r, g, b の順)。
-fn blend32(ss: [f32; 4], dd: [f32; 4]) -> [f32; 4] {
-    if ss[0] == 0.0 || dd[0] >= 1.0 {
-        return dd;
-    }
-    if dd[0] == 0.0 {
-        return ss;
-    }
-    let as2 = (1.0 - dd[0]) * ss[0];
-    let ad2 = (dd[0] + as2).min(1.0);
-    if ad2 <= 0.0 {
-        return [0.0; 4];
-    }
-    let mix = |d: f32, s: f32| ((d * dd[0] + s * as2) / ad2).min(1.0);
-    [
-        ad2,
-        mix(dd[1], ss[1]),
-        mix(dd[2], ss[2]),
-        mix(dd[3], ss[3]),
-    ]
 }
 
 #[cfg(test)]
@@ -627,18 +493,7 @@ mod tests {
         assert_eq!(rot_length(12345, 0), (0, 0));
     }
 
-    #[test]
-    fn round_byte_f32_truncates_and_clamps() {
-        assert_eq!(round_byte_f32(-1.0), 0);
-        assert_eq!(round_byte_f32(254.9), 254);
-        assert_eq!(round_byte_f32(1000.0), 255);
-    }
 
-    #[test]
-    fn blend32_leaves_an_opaque_backdrop_alone() {
-        let dd = [1.0, 0.5, 0.5, 0.5];
-        assert_eq!(blend32([0.5, 1.0, 0.0, 0.0], dd), dd);
-    }
 
     #[test]
     fn the_rng_matches_the_originals_draw_order() {
