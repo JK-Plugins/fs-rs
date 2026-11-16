@@ -2,11 +2,11 @@
 
 元: [F's Plugins](https://github.com/bryful/F-s-PluginsProjects) の `Legacy/Project`。
 
-移植した 56 本はすべて、出荷されている .aex とパラメータ構成 (型・範囲・既定値・色・
+移植した 57 本はすべて、出荷されている .aex とパラメータ構成 (型・範囲・既定値・色・
 ポップアップ項目) が一致し、[AEXCompat](https://github.com/onmokoworks/AEXCompat) で
 画素を突き合わせてある。意図して元と違えているのはバグ修正ぶんだけ。
 
-以下は**まだ移植していない 55 本**の仕分け。`lines` は .cpp の行数、
+以下は**まだ移植していない 54 本**の仕分け。`lines` は .cpp の行数、
 `oracle` は元と画素比較する手段:
 
 | oracle | 意味 |
@@ -38,7 +38,6 @@
 | ScreenShakeDir | 546 | `classic` | `rand` `neighbor` `angle` `time` | ScreenShakeMM |
 | RandomLineNoise | 557 | `smart` | `rand` `neighbor` `time` | - |
 | ScreenShakeMM | 562 | `classic` | `rand` `neighbor` `angle` `time` | ScreenShakeDir |
-| sputteringCircle | 596 | `smart` | `neighbor` `draw` `point` | - |
 | ChannelNoise | 613 | `smart` | `rand` `time` | - |
 | SparkRing | 634 | `smart` | `rand` `neighbor` `point` `angle` `time` | - |
 | RandomMosaic2nd | 655 | `smart` | `rand` `time` | - |
@@ -142,6 +141,7 @@
 
 まだ無くて、残りの移植で必要になるもの:
 
-- 円の描画 (`Circle` 系) — sputteringCircle / GuideFrame など
+- 円の描画 (`Circle` 系) — GuideFrame など (sputteringCircle は円を描かず、
+  円の中に乱数で点を置くだけだったので要らなかった)
 - カスタム UI (`PF_ADD_NULL` + 描画イベント) — 今のところ残りには見当たらない
 - `.pref` の読み書き (TargetGrad 系のボタン。描画には影響しない)

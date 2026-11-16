@@ -1663,6 +1663,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "sputteringcircle-fs"
+version = "0.0.1"
+dependencies = [
+ "after-effects",
+ "image",
+ "libs",
+ "log",
+ "pipl",
+ "win_dbg_logger",
+]
+
+[[package]]
 name = "sputteringrect-fs"
 version = "0.0.1"
 dependencies = [
