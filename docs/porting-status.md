@@ -26,7 +26,6 @@
 
 | project | lines | oracle | needs | 双子 |
 |---|---|---|---|---|
-| CellGrad | 455 | `smart` | `draw` `angle` | - |
 | CellLineEraser_old | 475 | `smart` | - | - |
 | sputteringRect | 508 | `smart` | `neighbor` `point` | - |
 | EdgeLine-Hi | 586 | `smart` | `neighbor` `angle` | - |
@@ -71,6 +70,7 @@
 
 | project | lines | oracle | needs | 双子 |
 |---|---|---|---|---|
+| CellGrad | 455 (+919)** | `smart` | `world` `draw` `minimax` `angle` | - |
 | SelectedBlur | 1130 | `smart` | `world` `neighbor` `blur` | - |
 | EdgeBlur | 1181 | `smart` | `world` `neighbor` `blur` | - |
 | IroToreAdjacent | 1827 | `smart` | `world` `neighbor` `blur` | - |
@@ -110,6 +110,11 @@
 チェックボックスが既定で全部 OFF なので塗りつぶしに入らない。
 パラメータを振れるのは classic 経路だけなので、どう組んでも塗りつぶしの
 画素を比較できない。
+
+\*\* `CellGrad` の .cpp は 455 行だが、処理の本体は同じフォルダの
+`FWorldGrad.h` (729 行: 色の選択・マスク・最大最小・走査矩形) と
+`FRectGrad.h` (190 行: 角度と伸ばし量から回転した矩形を出す) にあり、
+どちらも libs に相当する部品が無い。実際の大きさは 1400 行ほど。
 
 ## 双子について
 
