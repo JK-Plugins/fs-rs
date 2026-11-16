@@ -2,11 +2,11 @@
 
 元: [F's Plugins](https://github.com/bryful/F-s-PluginsProjects) の `Legacy/Project`。
 
-移植した 55 本はすべて、出荷されている .aex とパラメータ構成 (型・範囲・既定値・色・
+移植した 56 本はすべて、出荷されている .aex とパラメータ構成 (型・範囲・既定値・色・
 ポップアップ項目) が一致し、[AEXCompat](https://github.com/onmokoworks/AEXCompat) で
 画素を突き合わせてある。意図して元と違えているのはバグ修正ぶんだけ。
 
-以下は**まだ移植していない 56 本**の仕分け。`lines` は .cpp の行数、
+以下は**まだ移植していない 55 本**の仕分け。`lines` は .cpp の行数、
 `oracle` は元と画素比較する手段:
 
 | oracle | 意味 |
@@ -46,7 +46,6 @@
 | GuideFrame | 669 | `smart` | `neighbor` `draw` `point` | - |
 | Spark | 694 | `smart` | `rand` `neighbor` `point` `angle` `time` | SparkStorm |
 | SparkStorm | 701 | `smart` | `rand` `neighbor` `point` `angle` `time` | Spark |
-| sputteringAlpha | 771 | `smart` | `world` `neighbor` | - |
 | SparkMult | 773 | `smart` | `rand` `neighbor` `point` `angle` `time` | - |
 | grayToWaveLine | 945 | `classic` | `world` `neighbor` `draw` `point` | - |
 | AnimatedNoise | 969 | `smart` | `rand` `neighbor` `time` | - |

@@ -8,6 +8,7 @@ members = [
     "createalpha",
     "hlsreverse",
     "libs",
+    "sputteringalpha",
     "edgelinehi",
     "sputteringsplash",
     "sputteringrect",
