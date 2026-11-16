@@ -2,11 +2,22 @@
 
 元: [F's Plugins](https://github.com/bryful/F-s-PluginsProjects) の `Legacy/Project`。
 
-移植した 58 本はすべて、出荷されている .aex とパラメータ構成 (型・範囲・既定値・色・
+移植した 59 本はすべて、出荷されている .aex とパラメータ構成 (型・範囲・既定値・色・
 ポップアップ項目) が一致し、[AEXCompat](https://github.com/onmokoworks/AEXCompat) で
 画素を突き合わせてある。意図して元と違えているのはバグ修正ぶんだけ。
 
-以下は**まだ移植していない 53 本**の仕分け。`lines` は .cpp の行数、
+ただし**元の都合で画素を比べられない経路がいくつかある**。各コミットに書いてあるが、
+まとめると:
+
+- **`Minimax` を通る経路** (`Max` など)。元は `Minimax` を呼ぶたびにワールドを
+  2つ漏らす (`dispose` が `Minimax` では埋まらない別のメンバで条件分けされている)。
+  AEXCompat は `world_lifetimes_balanced` を満たせないセッションを閉じないので、
+  フィルタが効く値では元を描かせられない。値 0 の素通しだけ比較できる
+- **16/32bit で既定以外のパラメータを使う経路**。classic 経路は 8bit 専用で、
+  深度を選べる smart 経路はパラメータを取らないため
+- **`Paint` / `PaintMultPoint` の塗りつぶし** (下の D 群の注を参照)
+
+以下は**まだ移植していない 52 本**の仕分け。`lines` は .cpp の行数、
 `oracle` は元と画素比較する手段:
 
 | oracle | 意味 |
@@ -30,7 +41,6 @@
 
 | project | lines | oracle | needs | 双子 |
 |---|---|---|---|---|
-| Max | 242 | `smart` | `minimax` | - |
 | ChromaticAberration | 412 | `smart` | `world` `neighbor` `point` | - |
 | RandomMosaic | 513 | `smart` | `rand` `time` | - |
 | RandomShift | 528 | `smart` | `rand` `neighbor` `draw` `time` | - |

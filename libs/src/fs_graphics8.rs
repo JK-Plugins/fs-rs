@@ -8,6 +8,8 @@
 // ref: https://github.com/bryful/F-s-PluginsProjects/tree/master/Legacy/Project/FsLibrary
 //      FsMiniMax8.cpp / FsBlur.cpp / FsMat.cpp / FsGraphics.h / FsUtils.h
 
+use crate::fs_graphics::{ScanLine, TargetChannel};
+
 pub const MAX8: i32 = 255;
 
 /// PF_Pixel と同じ並び（alpha, red, green, blue）
@@ -185,6 +187,11 @@ impl Image8 {
 
     /// Minimax8(value, HorAndVer, rgbAndAlpha)
     pub fn minimax8(&mut self, value: i32) {
+        self.minimax8_with(value, ScanLine::HorAndVer, TargetChannel::RgbAndAlpha);
+    }
+
+    /// 元の `Minimax8(value, mode, target)`。走査の向きと対象チャンネルを選べる。
+    pub fn minimax8_with(&mut self, value: i32, mode: ScanLine, target: TargetChannel) {
         if value == 0 || self.width == 0 || self.height == 0 {
             return;
         }
@@ -198,21 +205,30 @@ impl Image8 {
         }
 
         // rgb は輝度で比較
-        self.minimax_pass(
-            radius,
-            minus,
-            |p| {
-                (0.29891 * p.red as f64 + 0.58661 * p.green as f64 + 0.11448 * p.blue as f64 + 0.5)
-                    as i32
-            },
-            |d, s| {
-                d.red = s.red;
-                d.green = s.green;
-                d.blue = s.blue;
-            },
-        );
+        if matches!(target, TargetChannel::RgbAndAlpha | TargetChannel::Rgb) {
+            self.minimax_pass(
+                radius,
+                minus,
+                mode,
+                |p| {
+                    (0.29891 * p.red as f64
+                        + 0.58661 * p.green as f64
+                        + 0.11448 * p.blue as f64
+                        + 0.5) as i32
+                },
+                |d, s| {
+                    d.red = s.red;
+                    d.green = s.green;
+                    d.blue = s.blue;
+                },
+            );
+        }
         // alpha はそのまま比較
-        self.minimax_pass(radius, minus, |p| p.alpha as i32, |d, s| d.alpha = s.alpha);
+        if matches!(target, TargetChannel::RgbAndAlpha | TargetChannel::Alpha) {
+            self.minimax_pass(radius, minus, mode, |p| p.alpha as i32, |d, s| {
+                d.alpha = s.alpha
+            });
+        }
 
         if minus {
             self.from_white_mat8();
@@ -233,6 +249,7 @@ impl Image8 {
         self.minimax_pass(
             value.unsigned_abs() as usize,
             value < 0,
+            ScanLine::HorAndVer,
             |p| p.alpha as i32,
             |d, s| d.alpha = s.alpha,
         );
@@ -242,6 +259,7 @@ impl Image8 {
         &mut self,
         radius: usize,
         minus: bool,
+        mode: ScanLine,
         level: impl Fn(&Px8) -> i32,
         apply: impl Fn(&mut Px8, &Px8),
     ) {
@@ -249,24 +267,28 @@ impl Image8 {
         let mut scanline = vec![Px8::default(); w.max(h)];
         let mut lv = vec![0i32; w.max(h)];
 
-        for y in 0..h {
-            for x in 0..w {
-                scanline[x] = self.get(x, y);
-                lv[x] = level(&scanline[x]);
-            }
-            let picks = minimax_line(&lv[..w], radius, minus);
-            for x in 0..w {
-                apply(self.get_mut(x, y), &scanline[picks[x]]);
+        if matches!(mode, ScanLine::HorAndVer | ScanLine::Hor) {
+            for y in 0..h {
+                for x in 0..w {
+                    scanline[x] = self.get(x, y);
+                    lv[x] = level(&scanline[x]);
+                }
+                let picks = minimax_line(&lv[..w], radius, minus);
+                for x in 0..w {
+                    apply(self.get_mut(x, y), &scanline[picks[x]]);
+                }
             }
         }
-        for x in 0..w {
-            for y in 0..h {
-                scanline[y] = self.get(x, y);
-                lv[y] = level(&scanline[y]);
-            }
-            let picks = minimax_line(&lv[..h], radius, minus);
-            for y in 0..h {
-                apply(self.get_mut(x, y), &scanline[picks[y]]);
+        if matches!(mode, ScanLine::HorAndVer | ScanLine::Ver) {
+            for x in 0..w {
+                for y in 0..h {
+                    scanline[y] = self.get(x, y);
+                    lv[y] = level(&scanline[y]);
+                }
+                let picks = minimax_line(&lv[..h], radius, minus);
+                for y in 0..h {
+                    apply(self.get_mut(x, y), &scanline[picks[y]]);
+                }
             }
         }
     }
@@ -418,6 +440,214 @@ pub fn pixel_blend8(ss: Px8, dd: Px8) -> Px8 {
         mix(dd.green, ss.green),
         mix(dd.blue, ss.blue),
     )
+}
+
+/// 16bit の作業用バッファ。`Image8` の 16bit 版で、元の `FsMat.cpp` /
+/// `FsMiniMax16.cpp` をなぞっている。
+///
+/// 白マットの青チャンネルのバグは `Image8` と同じく再現していない
+/// ([`Image8::to_white_mat8`] の説明を参照)。深度で色が変わらないように
+/// 8bit / 32bit と揃えてある。
+#[derive(Debug, Clone, PartialEq)]
+pub struct Image16 {
+    pub width: usize,
+    pub height: usize,
+    pub data: Vec<Px16>,
+}
+
+/// PF_MAX_CHAN16。
+pub const MAX16: i32 = 32768;
+
+impl Image16 {
+    pub fn new(width: usize, height: usize) -> Self {
+        Self {
+            width,
+            height,
+            data: vec![Px16::default(); width * height],
+        }
+    }
+
+    #[inline]
+    pub fn get(&self, x: usize, y: usize) -> Px16 {
+        self.data[y * self.width + x]
+    }
+
+    #[inline]
+    pub fn get_mut(&mut self, x: usize, y: usize) -> &mut Px16 {
+        &mut self.data[y * self.width + x]
+    }
+
+    pub fn to_black_mat16(&mut self) {
+        for p in &mut self.data {
+            if (p.alpha as i32) < MAX16 {
+                if p.alpha == 0 {
+                    p.red = 0;
+                    p.green = 0;
+                    p.blue = 0;
+                } else {
+                    let a = p.alpha as i32;
+                    p.blue = round_short_i32(p.blue as i32 * a / MAX16);
+                    p.green = round_short_i32(p.green as i32 * a / MAX16);
+                    p.red = round_short_i32(p.red as i32 * a / MAX16);
+                }
+            }
+        }
+    }
+
+    pub fn from_black_mat16(&mut self) {
+        for p in &mut self.data {
+            if (p.alpha as i32) < MAX16 {
+                if p.alpha == 0 {
+                    p.red = 0;
+                    p.green = 0;
+                    p.blue = 0;
+                } else {
+                    let a = p.alpha as i32;
+                    p.blue = round_short_i32(p.blue as i32 * MAX16 / a);
+                    p.green = round_short_i32(p.green as i32 * MAX16 / a);
+                    p.red = round_short_i32(p.red as i32 * MAX16 / a);
+                }
+            }
+        }
+    }
+
+    pub fn to_white_mat16(&mut self) {
+        for p in &mut self.data {
+            if (p.alpha as i32) < MAX16 {
+                if p.alpha == 0 {
+                    p.red = MAX16 as u16;
+                    p.green = MAX16 as u16;
+                    p.blue = MAX16 as u16;
+                } else {
+                    let a = p.alpha as i32;
+                    let to_white = |c: i32| round_short_i32(c * a / MAX16 + MAX16 - a);
+                    p.red = to_white(p.red as i32);
+                    p.green = to_white(p.green as i32);
+                    p.blue = to_white(p.blue as i32);
+                }
+            }
+        }
+    }
+
+    pub fn from_white_mat16(&mut self) {
+        for p in &mut self.data {
+            if (p.alpha as i32) < MAX16 {
+                if p.alpha == 0 {
+                    p.red = 0;
+                    p.green = 0;
+                    p.blue = 0;
+                } else {
+                    let a = p.alpha as i32;
+                    p.red = round_short_i32((p.red as i32 - MAX16 + a) * MAX16 / a);
+                    p.green = round_short_i32((p.green as i32 - MAX16 + a) * MAX16 / a);
+                    p.blue = round_short_i32((p.blue as i32 - MAX16 + a) * MAX16 / a);
+                }
+            }
+        }
+    }
+
+    /// 元の `Minimax16(value, mode, target)`。
+    pub fn minimax16_with(&mut self, value: i32, mode: ScanLine, target: TargetChannel) {
+        if value == 0 || self.width == 0 || self.height == 0 {
+            return;
+        }
+        let radius = value.unsigned_abs() as usize;
+        let minus = value < 0;
+
+        if minus {
+            self.to_white_mat16();
+        } else {
+            self.to_black_mat16();
+        }
+
+        if matches!(target, TargetChannel::RgbAndAlpha | TargetChannel::Rgb) {
+            self.minimax_pass(
+                radius,
+                minus,
+                mode,
+                |p| {
+                    (0.29891 * p.red as f64
+                        + 0.58661 * p.green as f64
+                        + 0.11448 * p.blue as f64
+                        + 0.5) as i32
+                },
+                |d, s| {
+                    d.red = s.red;
+                    d.green = s.green;
+                    d.blue = s.blue;
+                },
+            );
+        }
+        if matches!(target, TargetChannel::RgbAndAlpha | TargetChannel::Alpha) {
+            self.minimax_pass(radius, minus, mode, |p| p.alpha as i32, |d, s| {
+                d.alpha = s.alpha
+            });
+        }
+
+        if minus {
+            self.from_white_mat16();
+        } else {
+            self.from_black_mat16();
+        }
+    }
+
+    /// 元の `MinimaxA16`。マット処理をしない (アルファだけ)。
+    pub fn minimax_alpha16(&mut self, value: i32) {
+        if value == 0 || self.width == 0 || self.height == 0 {
+            return;
+        }
+        self.minimax_pass(
+            value.unsigned_abs() as usize,
+            value < 0,
+            ScanLine::HorAndVer,
+            |p| p.alpha as i32,
+            |d, s| d.alpha = s.alpha,
+        );
+    }
+
+    fn minimax_pass(
+        &mut self,
+        radius: usize,
+        minus: bool,
+        mode: ScanLine,
+        level: impl Fn(&Px16) -> i32,
+        apply: impl Fn(&mut Px16, &Px16),
+    ) {
+        let (w, h) = (self.width, self.height);
+        let mut scanline = vec![Px16::default(); w.max(h)];
+        let mut lv = vec![0i32; w.max(h)];
+
+        if matches!(mode, ScanLine::HorAndVer | ScanLine::Hor) {
+            for y in 0..h {
+                for x in 0..w {
+                    scanline[x] = self.get(x, y);
+                    lv[x] = level(&scanline[x]);
+                }
+                let picks = minimax_line(&lv[..w], radius, minus);
+                for x in 0..w {
+                    apply(self.get_mut(x, y), &scanline[picks[x]]);
+                }
+            }
+        }
+        if matches!(mode, ScanLine::HorAndVer | ScanLine::Ver) {
+            for x in 0..w {
+                for y in 0..h {
+                    scanline[y] = self.get(x, y);
+                    lv[y] = level(&scanline[y]);
+                }
+                let picks = minimax_line(&lv[..h], radius, minus);
+                for y in 0..h {
+                    apply(self.get_mut(x, y), &scanline[picks[y]]);
+                }
+            }
+        }
+    }
+}
+
+/// 元の RoundShort (A_long を 0..32768 にクランプ)。
+#[inline]
+pub fn round_short_i32(x: i32) -> u16 {
+    x.clamp(0, MAX16) as u16
 }
 
 /// PF_Pixel16 と同じ並び (alpha, red, green, blue)。
@@ -705,5 +935,74 @@ mod tests {
         // 半分どうしならアルファが増える。
         let r = pixel_blend16(src, half);
         assert!(r.alpha > half.alpha);
+    }
+
+    #[test]
+    fn minimax8_honours_the_scan_direction() {
+        // 横だけ走らせたら、縦に並んだ点は広がらない。
+        // (窓は元のまま [i-radius, i+radius-1] と左右で非対称なので、
+        //  radius 2 で見ている)
+        let mut a = Image8::new(5, 5);
+        *a.get_mut(2, 2) = Px8::new(255, 255, 255, 255);
+        let mut b = a.clone();
+        a.minimax8_with(2, ScanLine::Hor, TargetChannel::Alpha);
+        b.minimax8_with(2, ScanLine::Ver, TargetChannel::Alpha);
+        // 横だけなら同じ行に伸び、縦だけなら同じ列に伸びる。
+        assert_eq!(a.get(1, 2).alpha, 255);
+        assert_eq!(a.get(3, 2).alpha, 255);
+        assert_eq!(a.get(2, 1).alpha, 0);
+        assert_eq!(b.get(2, 1).alpha, 255);
+        assert_eq!(b.get(2, 3).alpha, 255);
+        assert_eq!(b.get(1, 2).alpha, 0);
+    }
+
+    #[test]
+    fn minimax8_honours_the_target_channel() {
+        // アルファだけを対象にすると RGB は動かない。
+        let mut a = Image8::new(5, 5);
+        for y in 0..5 {
+            for x in 0..5 {
+                *a.get_mut(x, y) = Px8::new(255, 10, 20, 30);
+            }
+        }
+        *a.get_mut(2, 2) = Px8::new(255, 200, 200, 200);
+        let mut b = a.clone();
+        b.minimax8_with(1, ScanLine::HorAndVer, TargetChannel::Alpha);
+        for y in 0..5 {
+            for x in 0..5 {
+                assert_eq!(b.get(x, y).red, a.get(x, y).red, "x={x} y={y}");
+            }
+        }
+    }
+
+    #[test]
+    fn image16_mats_roundtrip() {
+        let mut img = Image16::new(2, 1);
+        *img.get_mut(0, 0) = Px16::new(16384, 20000, 10000, 5000);
+        *img.get_mut(1, 0) = Px16::new(32768, 20000, 10000, 5000);
+        let before = img.clone();
+        img.to_black_mat16();
+        img.from_black_mat16();
+        // 不透明な画素は往復しても変わらない。
+        assert_eq!(img.get(1, 0), before.get(1, 0));
+        // 半透明は整数の割り算ぶんだけ丸めで動く。
+        assert!((img.get(0, 0).red as i32 - before.get(0, 0).red as i32).abs() <= 2);
+    }
+
+    #[test]
+    fn image16_minimax_dilates_on_alpha() {
+        let mut img = Image16::new(6, 1);
+        *img.get_mut(2, 0) = Px16::new(32768, 32768, 32768, 32768);
+        img.minimax16_with(2, ScanLine::Hor, TargetChannel::Alpha);
+        let got: Vec<u16> = img.data.iter().map(|p| p.alpha).collect();
+        // 窓は [i-2, i+1] なので 1..4 に広がる (8bit 版と同じ形)。
+        assert_eq!(got, vec![0, 32768, 32768, 32768, 32768, 0]);
+    }
+
+    #[test]
+    fn round_short_i32_clamps() {
+        assert_eq!(round_short_i32(-5), 0);
+        assert_eq!(round_short_i32(40000), 32768);
+        assert_eq!(round_short_i32(100), 100);
     }
 }
