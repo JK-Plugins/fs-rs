@@ -2,11 +2,11 @@
 
 元: [F's Plugins](https://github.com/bryful/F-s-PluginsProjects) の `Legacy/Project`。
 
-移植した 54 本はすべて、出荷されている .aex とパラメータ構成 (型・範囲・既定値・色・
+移植した 55 本はすべて、出荷されている .aex とパラメータ構成 (型・範囲・既定値・色・
 ポップアップ項目) が一致し、[AEXCompat](https://github.com/onmokoworks/AEXCompat) で
 画素を突き合わせてある。意図して元と違えているのはバグ修正ぶんだけ。
 
-以下は**まだ移植していない 57 本**の仕分け。`lines` は .cpp の行数、
+以下は**まだ移植していない 56 本**の仕分け。`lines` は .cpp の行数、
 `oracle` は元と画素比較する手段:
 
 | oracle | 意味 |
@@ -22,11 +22,9 @@
 `point` 座標 / `angle` 角度 / `time` フレーム依存 / `suite` AE のカラースイート /
 `preset` .pref の読み書き / `button` ボタン。
 
-## A: 小さくて部品も揃っている (次に着手する分)
+## A: 小さくて部品も揃っている
 
-| project | lines | oracle | needs | 双子 |
-|---|---|---|---|---|
-| EdgeLine-Hi | 586 | `smart` | `neighbor` `angle` | - |
+**全部移植した。** 次に着手するのは B 群。
 
 ## B: 中くらい。既存の部品で足りるが読む量が増える
 
