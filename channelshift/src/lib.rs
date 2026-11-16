@@ -16,44 +16,9 @@
 //! ref: https://github.com/bryful/F-s-PluginsProjects/tree/master/Legacy/Project/ChannelShift
 
 use after_effects::{self as ae};
-use libs::utils::{round_byte_fp_double, round_fp_short_double, round_short_fp_double};
-
-/// 元の FLT2FIX。
-fn flt2fix(f: f64) -> i32 {
-    (f * 65536.0 + if f < 0.0 { -0.5 } else { 0.5 }) as i32
-}
-
-/// 元の CRotCalc::SetRotLength(PF_Fixed, PF_Fixed)。象限ごとに sin/cos を
-/// 入れ替えて使っているので、そのまま写してある。
-fn rot_length(r: i32, len: i32) -> (i32, i32) {
-    if len == 0 {
-        return (0, 0);
-    }
-    // 元の RoundRot。
-    let mut rr = r % (360 << 16);
-    if rr < 0 {
-        rr += 360 << 16;
-    }
-    let r2 = rr as f64 / 65536.0;
-    let v2 = len as f64 / 65536.0;
-    let d = std::f64::consts::PI / 180.0;
-    let (x, y) = if rr < (90 << 16) {
-        ((d * r2).sin() * v2, (d * r2).cos() * v2 * -1.0)
-    } else if rr < (180 << 16) {
-        ((d * (r2 - 90.0)).cos() * v2, (d * (r2 - 90.0)).sin() * v2)
-    } else if rr < (270 << 16) {
-        (
-            (d * (r2 - 180.0)).sin() * v2 * -1.0,
-            (d * (r2 - 180.0)).cos() * v2,
-        )
-    } else {
-        (
-            (d * (r2 - 270.0)).cos() * v2 * -1.0,
-            (d * (r2 - 270.0)).sin() * v2 * -1.0,
-        )
-    };
-    (flt2fix(x), flt2fix(y))
-}
+use libs::utils::{
+    flt2fix, rot_length, round_byte_fp_double, round_fp_short_double, round_short_fp_double,
+};
 
 /// 元の edge_none / edge_fill / edge_rep / edge_mirror。
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -490,30 +455,8 @@ impl Plugin {
 mod tests {
     use super::*;
 
-    #[test]
-    fn rot_length_zero_is_origin() {
-        assert_eq!(rot_length(0, 0), (0, 0));
-    }
 
-    #[test]
-    fn rot_length_cardinal_directions() {
-        // 0度は上 (y がマイナス)。
-        assert_eq!(rot_length(0, 10 << 16), (0, -(10 << 16)));
-        // 90度は右。
-        assert_eq!(rot_length(90 << 16, 10 << 16), (10 << 16, 0));
-        // 180度は下。
-        assert_eq!(rot_length(180 << 16, 10 << 16), (0, 10 << 16));
-        // 270度は左。
-        assert_eq!(rot_length(270 << 16, 10 << 16), (-(10 << 16), 0));
-    }
 
-    #[test]
-    fn rot_length_wraps_negative_angles() {
-        assert_eq!(
-            rot_length(-90 << 16, 10 << 16),
-            rot_length(270 << 16, 10 << 16)
-        );
-    }
 
     #[test]
     fn edge_modes() {

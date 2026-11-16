@@ -521,6 +521,20 @@ impl XorShift {
         2.0 * self.next_double() - 1.0
     }
 
+    /// 元の FM_RAND(HI): `(A_long)(F_RAND() * (HI + 1.0) / (1.0 + F_RAND_MAX))`。
+    /// 0..=hi。計算は double で、最後に 0 方向へ切り捨てる。
+    pub fn fm_rand(&mut self, hi: i64) -> i64 {
+        let r = self.next() as f64;
+        (r * (hi as f64 + 1.0) / (1.0 + Self::RAND_MAX as f64)) as i64
+    }
+
+    /// 元の FR_RAND(LO,HI)。lo は使われず HI-LO+1 の幅だけに効く
+    /// (元のマクロのとおり)。
+    pub fn fr_rand(&mut self, lo: i64, hi: i64) -> i64 {
+        let r = self.next() as f64;
+        (r * (hi as f64 - lo as f64 + 1.0) / (1.0 + Self::RAND_MAX as f64)) as i64
+    }
+
     /// 0..=RAND_MAX
     pub fn next(&mut self) -> u32 {
         let t = self.seed[0] ^ (self.seed[0] << 11);

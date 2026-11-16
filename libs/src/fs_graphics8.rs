@@ -420,6 +420,51 @@ pub fn pixel_blend8(ss: Px8, dd: Px8) -> Px8 {
     )
 }
 
+/// PF_Pixel16 と同じ並び (alpha, red, green, blue)。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct Px16 {
+    pub alpha: u16,
+    pub red: u16,
+    pub green: u16,
+    pub blue: u16,
+}
+
+impl Px16 {
+    pub const fn new(alpha: u16, red: u16, green: u16, blue: u16) -> Self {
+        Self {
+            alpha,
+            red,
+            green,
+            blue,
+        }
+    }
+}
+
+/// PixelBlend16(src, dst)。8bit 版と違って `>> 15` の前に +1 しない
+/// (元のとおり)。
+pub fn pixel_blend16(ss: Px16, dd: Px16) -> Px16 {
+    const MAX16: i64 = 32768;
+    if ss.alpha == 0 || dd.alpha as i64 == MAX16 {
+        return dd;
+    }
+    if dd.alpha == 0 {
+        return ss;
+    }
+    let as2 = ((MAX16 - dd.alpha as i64) * ss.alpha as i64) >> 15;
+    let ad2 = (dd.alpha as i64 + as2).min(MAX16);
+    if ad2 <= 0 {
+        return Px16::default();
+    }
+    let da = dd.alpha as i64;
+    let mix = |d: u16, s: u16| ((d as i64 * da + s as i64 * as2) / ad2).min(MAX16) as u16;
+    Px16::new(
+        ad2 as u16,
+        mix(dd.red, ss.red),
+        mix(dd.green, ss.green),
+        mix(dd.blue, ss.blue),
+    )
+}
+
 pub fn normal_blend8(i: Px8, o: Px8) -> Px8 {
     pixel_blend8(i, o)
 }
@@ -644,5 +689,21 @@ mod tests {
         let half = percent_blend8(i, o, 0.5);
         assert_eq!(half.alpha, 255);
         assert_eq!(half.red, 100);
+    }
+
+    #[test]
+    fn pixel_blend16_basics() {
+        let opaque = Px16::new(32768, 100, 100, 100);
+        let src = Px16::new(16384, 0, 0, 0);
+        // 下地が完全に不透明なら何も起きない。
+        assert_eq!(pixel_blend16(src, opaque), opaque);
+        // 下地が透明なら src がそのまま。
+        assert_eq!(pixel_blend16(src, Px16::default()), src);
+        // src が透明なら dst がそのまま。
+        let half = Px16::new(16384, 200, 200, 200);
+        assert_eq!(pixel_blend16(Px16::default(), half), half);
+        // 半分どうしならアルファが増える。
+        let r = pixel_blend16(src, half);
+        assert!(r.alpha > half.alpha);
     }
 }

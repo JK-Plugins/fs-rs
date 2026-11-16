@@ -141,6 +141,46 @@ pub fn round_fp_short_double(x: f64) -> f32 {
     temp as f32
 }
 
+/// 元の FLT2FIX (`FsUtils.h`)。符号つきで 0.5 を足して固定小数にする。
+pub fn flt2fix(f: f64) -> i32 {
+    (f * 65536.0 + if f < 0.0 { -0.5 } else { 0.5 }) as i32
+}
+
+/// 元の `CRotCalc::SetRotLength(PF_Fixed, PF_Fixed)` (`FsUtils.h`)。
+///
+/// 角度と距離 (どちらも固定小数) から XY のずれ (固定小数) を出す。
+/// 象限ごとに sin と cos を入れ替えて使っているので、そのまま写してある
+/// (90度ごとに丸めの出方が変わる)。0度が上で、時計回り。
+pub fn rot_length(r: i32, len: i32) -> (i32, i32) {
+    if len == 0 {
+        return (0, 0);
+    }
+    // 元の RoundRot。
+    let mut rr = r % (360 << 16);
+    if rr < 0 {
+        rr += 360 << 16;
+    }
+    let r2 = rr as f64 / 65536.0;
+    let v2 = len as f64 / 65536.0;
+    let d = std::f64::consts::PI / 180.0;
+    let (x, y) = if rr < (90 << 16) {
+        ((d * r2).sin() * v2, (d * r2).cos() * v2 * -1.0)
+    } else if rr < (180 << 16) {
+        ((d * (r2 - 90.0)).cos() * v2, (d * (r2 - 90.0)).sin() * v2)
+    } else if rr < (270 << 16) {
+        (
+            (d * (r2 - 180.0)).sin() * v2 * -1.0,
+            (d * (r2 - 180.0)).cos() * v2,
+        )
+    } else {
+        (
+            (d * (r2 - 270.0)).cos() * v2 * -1.0,
+            (d * (r2 - 270.0)).sin() * v2 * -1.0,
+        )
+    };
+    (flt2fix(x), flt2fix(y))
+}
+
 pub fn round_short(x: i32) -> u16 {
     let mut temp = x;
     if temp < 0 {
@@ -323,5 +363,30 @@ mod tests {
         assert_eq!(round_fp_short_double(-1.0), 0.0);
         assert_eq!(round_fp_short_double(100.0), 32.0);
         assert_eq!(round_fp_short_double(0.5), 0.5);
+    }
+
+    #[test]
+    fn rot_length_cardinal_directions() {
+        // 0度は上 (y がマイナス)、90度が右、180度が下、270度が左。
+        assert_eq!(rot_length(0, 10 << 16), (0, -(10 << 16)));
+        assert_eq!(rot_length(90 << 16, 10 << 16), (10 << 16, 0));
+        assert_eq!(rot_length(180 << 16, 10 << 16), (0, 10 << 16));
+        assert_eq!(rot_length(270 << 16, 10 << 16), (-(10 << 16), 0));
+    }
+
+    #[test]
+    fn rot_length_zero_and_negative_angles() {
+        assert_eq!(rot_length(0, 0), (0, 0));
+        assert_eq!(
+            rot_length(-90 << 16, 10 << 16),
+            rot_length(270 << 16, 10 << 16)
+        );
+    }
+
+    #[test]
+    fn flt2fix_rounds_away_from_zero() {
+        assert_eq!(flt2fix(1.0), 1 << 16);
+        assert_eq!(flt2fix(-1.0), -(1 << 16));
+        assert_eq!(flt2fix(0.5), 1 << 15);
     }
 }
