@@ -29,11 +29,6 @@ enum Params {
     FrameRand,
 }
 
-/// 元の F_RAND2(min, max)。整数版 xorShift を使う。
-fn rand_range(rng: &mut XorShift, lo: i64, hi: i64) -> i64 {
-    lo + ((rng.next() as f64 * ((hi - lo) as f64 + 1.0) / (1.0 + XorShift::RAND_MAX as f64)) as i64)
-}
-
 #[derive(Default)]
 struct Plugin {}
 
@@ -284,147 +279,34 @@ impl Plugin {
                 let (mut ra, mut rb, mut rg, mut rr) = (0i64, 0i64, 0i64, 0i64);
                 if rand > 0.0 {
                     if rand_gray {
-                        let v = rand_range(&mut rng, -rand_value, rand_value);
+                        let v = rng.rand2(-rand_value, rand_value);
                         ra = v;
                         rb = v;
                         rg = v;
                         rr = v;
                     } else {
-                        ra = rand_range(&mut rng, -rand_value, rand_value);
-                        rb = rand_range(&mut rng, -rand_value, rand_value);
-                        rg = rand_range(&mut rng, -rand_value, rand_value);
-                        rr = rand_range(&mut rng, -rand_value, rand_value);
+                        ra = rng.rand2(-rand_value, rand_value);
+                        rb = rng.rand2(-rand_value, rand_value);
+                        rg = rng.rand2(-rand_value, rand_value);
+                        rr = rng.rand2(-rand_value, rand_value);
                     }
                 }
-                // 元の flat*: 範囲を画面内に詰める。
-                let (mut x, mut y) = (bx, by);
-                let (mut sx, mut sy) = (size_x, size_y);
-                if sx < 0 || sy < 0 || (sx <= 1 && sy <= 1) || x >= w || y >= h {
-                    continue;
-                }
-                if x < 0 {
-                    sx += x;
-                    if sx <= 0 {
-                        continue;
-                    }
-                    x = 0;
-                }
-                if x + sx > w {
-                    sx = w - x;
-                    if sx <= 0 {
-                        continue;
-                    }
-                }
-                if y < 0 {
-                    sy += y;
-                    if sy <= 0 {
-                        continue;
-                    }
-                    y = 0;
-                }
-                if y + sy > h {
-                    sy = h - y;
-                    if sy <= 0 {
-                        continue;
-                    }
-                }
-
-                if depth == 32 {
-                    // 32bit も元は同じ構造だが値は実数。行ごとに割って足す。
-                    let (mut ya, mut yr, mut yg, mut yb) = (0.0f64, 0.0, 0.0, 0.0);
-                    for jj in 0..sy {
-                        let (mut xa, mut xr, mut xg, mut xb) = (0.0f64, 0.0, 0.0, 0.0);
-                        for ii in 0..sx {
-                            let p = out_layer.as_pixel32((x + ii) as usize, (y + jj) as usize);
-                            xa += p.alpha as f64;
-                            xr += p.red as f64;
-                            xg += p.green as f64;
-                            xb += p.blue as f64;
-                        }
-                        ya += xa / sx as f64;
-                        yr += xr / sx as f64;
-                        yg += xg / sx as f64;
-                        yb += xb / sx as f64;
-                    }
-                    // 元の flat32: 乱数は 16bit の目盛りで引いてから
-                    // PF_MAX_CHAN16 で割る。クランプは RoundFpShortDouble
-                    // (0..32) なので 1.0 ではなく 32.0 で止まる。
-                    let k = MAX_CHANNEL16 as f64;
-                    let f = |v: f64, r: i64| -> f32 {
-                        (v / sy as f64 + r as f64 / k).clamp(0.0, 32.0) as f32
-                    };
-                    // 元: アルファのちらつきは 1.0-0.1 未満のところだけ。
-                    let a0 = (ya / sy as f64).clamp(0.0, 32.0);
-                    let a = if a0 < 1.0 - 0.1 {
-                        (a0 + ra as f64 / k).clamp(0.0, 32.0) as f32
-                    } else {
-                        a0 as f32
-                    };
-                    let c = ae::PixelF32 {
-                        alpha: a,
-                        red: f(yr, rr),
-                        green: f(yg, rg),
-                        blue: f(yb, rb),
-                    };
-                    for jj in 0..sy {
-                        for ii in 0..sx {
-                            *out_layer.as_pixel32_mut((x + ii) as usize, (y + jj) as usize) = c;
-                        }
-                    }
-                    continue;
-                }
-
-                // 8/16bit: 元と同じ整数演算 (行ごとに割って足し、最後に行数で割る)。
-                let (mut ya, mut yr, mut yg, mut yb) = (0i64, 0i64, 0i64, 0i64);
-                for jj in 0..sy {
-                    let (mut xa, mut xr, mut xg, mut xb) = (0i64, 0i64, 0i64, 0i64);
-                    for ii in 0..sx {
-                        let (a, r, g, b) = if depth == 8 {
-                            let p = out_layer.as_pixel8((x + ii) as usize, (y + jj) as usize);
-                            (p.alpha as i64, p.red as i64, p.green as i64, p.blue as i64)
-                        } else {
-                            let p = out_layer.as_pixel16((x + ii) as usize, (y + jj) as usize);
-                            (p.alpha as i64, p.red as i64, p.green as i64, p.blue as i64)
-                        };
-                        xa += a;
-                        xr += r;
-                        xg += g;
-                        xb += b;
-                    }
-                    ya += xa / sx;
-                    yr += xr / sx;
-                    yg += xg / sx;
-                    yb += xb / sx;
-                }
-                // 元: アルファのちらつきは「最大値-26 未満」のところだけに乗る。
-                let mut a2 = (ya / sy).clamp(0, max);
-                if a2 < max - 26 {
-                    a2 += ra;
-                }
-                let a = a2.clamp(0, max);
-                let r = (yr / sy + rr).clamp(0, max);
-                let g = (yg / sy + rg).clamp(0, max);
-                let b = (yb / sy + rb).clamp(0, max);
-                for jj in 0..sy {
-                    for ii in 0..sx {
-                        let (xx, yy) = ((x + ii) as usize, (y + jj) as usize);
-                        if depth == 8 {
-                            *out_layer.as_pixel8_mut(xx, yy) = ae::Pixel8 {
-                                alpha: a as u8,
-                                red: r as u8,
-                                green: g as u8,
-                                blue: b as u8,
-                            };
-                        } else {
-                            *out_layer.as_pixel16_mut(xx, yy) = ae::Pixel16 {
-                                alpha: a as u16,
-                                red: r as u16,
-                                green: g as u16,
-                                blue: b as u16,
-                            };
-                        }
-                    }
-                }
+                // 塗りつぶしは libs の `flat` (元の flat8/16/32) に任せる。
+                // 32bit の加減値は 16bit の目盛りで引いた値を割ったもの。
+                let k = if depth == 32 {
+                    MAX_CHANNEL16 as f64
+                } else {
+                    1.0
+                };
+                libs::fs_mosaic::flat(
+                    &out_layer,
+                    depth,
+                    bx,
+                    by,
+                    size_x,
+                    size_y,
+                    [ra as f64 / k, rr as f64 / k, rg as f64 / k, rb as f64 / k],
+                );
             }
         }
         Ok(())

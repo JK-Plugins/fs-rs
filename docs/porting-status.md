@@ -2,7 +2,7 @@
 
 元: [F's Plugins](https://github.com/bryful/F-s-PluginsProjects) の `Legacy/Project`。
 
-移植した 60 本はすべて、出荷されている .aex とパラメータ構成 (型・範囲・既定値・色・
+移植した 61 本はすべて、出荷されている .aex とパラメータ構成 (型・範囲・既定値・色・
 ポップアップ項目) が一致し、[AEXCompat](https://github.com/onmokoworks/AEXCompat) で
 画素を突き合わせてある。意図して元と違えているのはバグ修正ぶんだけ。
 
@@ -17,7 +17,7 @@
   深度を選べる smart 経路はパラメータを取らないため
 - **`Paint` / `PaintMultPoint` の塗りつぶし** (下の D 群の注を参照)
 
-以下は**まだ移植していない 51 本**の仕分け。`lines` は .cpp の行数、
+以下は**まだ移植していない 50 本**の仕分け。`lines` は .cpp の行数、
 `oracle` は元と画素比較する手段:
 
 | oracle | 意味 |
@@ -41,7 +41,6 @@
 
 | project | lines | oracle | needs | 双子 |
 |---|---|---|---|---|
-| RandomMosaic | 513 | `smart` | `rand` `time` | - |
 | RandomShift | 528 | `smart` | `rand` `neighbor` `draw` `time` | - |
 | ScreenShakeDir | 546 | `classic` | `rand` `neighbor` `angle` `time` | ScreenShakeMM |
 | RandomLineNoise | 557 | `smart` | `rand` `neighbor` `time` | - |
@@ -141,6 +140,8 @@
 - 乱数 (`fs_graphics::XorShift`: 整数版・double 版・`F_RAND_D1` 相当。種まきも元と同じ)
 - HLS (`hls`) と Lab (`lab`)
 - ブレンドモード各種 (`fs_graphics8`)
+- モザイクの塗りつぶし (`fs_mosaic::flat`、元の flat8/16/32)。`Mosaic` と
+  `RandomMosaic` が共有している
 - 飛び散りのスプライト表と描き方 (`sputtering`: 14x14 を 60 種類、
   大きさごとの引き表、深度ごとの描画 `sput_draw`)。sputteringAlpha /
   sputteringCircle も同じものを使う
