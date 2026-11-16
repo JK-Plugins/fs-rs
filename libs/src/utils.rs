@@ -129,6 +129,18 @@ pub fn round_short_fp_double(x: f64) -> u16 {
     temp as u16
 }
 
+/// 元の RoundFpShortDouble。double で受けて 0..32.0 に収めてから f32 にする。
+pub fn round_fp_short_double(x: f64) -> f32 {
+    let mut temp = x;
+    if temp < 0.0 {
+        temp = 0.0;
+    }
+    if temp > 32.0 {
+        temp = 32.0;
+    }
+    temp as f32
+}
+
 pub fn round_short(x: i32) -> u16 {
     let mut temp = x;
     if temp < 0 {
@@ -304,5 +316,12 @@ mod tests {
         assert_eq!(round_fp_short(-1.0), 0.0);
         assert_eq!(round_fp_short(5.5), 5.5);
         assert_eq!(round_fp_short(100.0), 32.0);
+    }
+
+    #[test]
+    fn round_fp_short_double_clamps() {
+        assert_eq!(round_fp_short_double(-1.0), 0.0);
+        assert_eq!(round_fp_short_double(100.0), 32.0);
+        assert_eq!(round_fp_short_double(0.5), 0.5);
     }
 }
