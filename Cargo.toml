@@ -8,6 +8,7 @@ members = [
     "createalpha",
     "hlsreverse",
     "libs",
+    "channelnoise",
     "randommosaic2nd",
     "randommosaic",
     "chromaticaberration",
