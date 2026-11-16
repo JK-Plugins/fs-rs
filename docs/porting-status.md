@@ -2,11 +2,11 @@
 
 元: [F's Plugins](https://github.com/bryful/F-s-PluginsProjects) の `Legacy/Project`。
 
-移植した 57 本はすべて、出荷されている .aex とパラメータ構成 (型・範囲・既定値・色・
+移植した 58 本はすべて、出荷されている .aex とパラメータ構成 (型・範囲・既定値・色・
 ポップアップ項目) が一致し、[AEXCompat](https://github.com/onmokoworks/AEXCompat) で
 画素を突き合わせてある。意図して元と違えているのはバグ修正ぶんだけ。
 
-以下は**まだ移植していない 54 本**の仕分け。`lines` は .cpp の行数、
+以下は**まだ移植していない 53 本**の仕分け。`lines` は .cpp の行数、
 `oracle` は元と画素比較する手段:
 
 | oracle | 意味 |
@@ -30,7 +30,6 @@
 
 | project | lines | oracle | needs | 双子 |
 |---|---|---|---|---|
-| UsedColorList | 210 | `smart` | `world` `neighbor` `point` | - |
 | Max | 242 | `smart` | `minimax` | - |
 | ChromaticAberration | 412 | `smart` | `world` `neighbor` `point` | - |
 | RandomMosaic | 513 | `smart` | `rand` `time` | - |
