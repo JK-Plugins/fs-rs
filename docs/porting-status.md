@@ -26,8 +26,6 @@
 
 | project | lines | oracle | needs | 双子 |
 |---|---|---|---|---|
-| Paint | 387 | `classic` | `point` | - |
-| PaintMultPoint | 398 | `smart` | `point` | - |
 | CellGrad | 455 | `smart` | `draw` `angle` | - |
 | CellLineEraser_old | 475 | `smart` | - | - |
 | sputteringRect | 508 | `smart` | `neighbor` `point` | - |
@@ -96,11 +94,22 @@
 | ChannelBlur | 263 | `no-binary` | - | - |
 | Frame | 324 | `none` | `draw` | FsSSFrame |
 | FsSSFrame | 324 | `none` | `draw` | Frame |
+| Paint | 387 | `none`* | `point` | - |
+| PaintMultPoint | 398 | `none`* | `point` | - |
 | Spark_Test | 413 | `no-binary` | `rand` `neighbor` `point` | - |
 | Extract_Edge | 416 | `no-binary` | `neighbor` | - |
 | Shine | 1148 | `none` | `rand` `world` `neighbor` `point` | ShineParallel |
 | ShineParallel | 1165 | `no-binary` | `rand` `world` `neighbor` `angle` | Shine |
 | InnerFlare_old | 2313 | `none` | `world` `neighbor` | InnerFlareRot_old, MaxBlur |
+
+\* `Paint` / `PaintMultPoint` は塗りつぶし (バケツ) が本体だが、それを
+元と突き合わせる手段が無い。**どちらも元の classic の Render が
+パラメータを読むだけで `Exec()` を呼んでいない** (`Paint` は入力のコピーまで、
+`PaintMultPoint` は出力に何も書かない)。塗りつぶしは smart 経路にしかなく、
+その smart 経路は `Paint` では AEXCompat で落ち、`PaintMultPoint` では
+チェックボックスが既定で全部 OFF なので塗りつぶしに入らない。
+パラメータを振れるのは classic 経路だけなので、どう組んでも塗りつぶしの
+画素を比較できない。
 
 ## 双子について
 
