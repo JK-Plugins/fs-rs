@@ -2,7 +2,7 @@
 
 元: [F's Plugins](https://github.com/bryful/F-s-PluginsProjects) の `Legacy/Project`。
 
-移植した 70 本はすべて、出荷されている .aex とパラメータ構成 (型・範囲・既定値・色・
+移植した 72 本はすべて、出荷されている .aex とパラメータ構成 (型・範囲・既定値・色・
 ポップアップ項目) が一致し、[AEXCompat](https://github.com/onmokoworks/AEXCompat) で
 画素を突き合わせてある。意図して元と違えているのはバグ修正ぶんだけ。
 
@@ -17,7 +17,7 @@
   深度を選べる smart 経路はパラメータを取らないため
 - **`Paint` / `PaintMultPoint` の塗りつぶし** (下の D 群の注を参照)
 
-以下は**まだ移植していない 41 本**の仕分け。`lines` は .cpp の行数、
+以下は**まだ移植していない 39 本**の仕分け。`lines` は .cpp の行数、
 `oracle` は元と画素比較する手段:
 
 | oracle | 意味 |
@@ -41,8 +41,6 @@
 
 | project | lines | oracle | needs | 双子 |
 |---|---|---|---|---|
-| ScreenShakeDir | 546 | `classic` | `rand` `neighbor` `angle` `time` | ScreenShakeMM |
-| ScreenShakeMM | 562 | `classic` | `rand` `neighbor` `angle` `time` | ScreenShakeDir |
 | SparkRing | 634 | `smart` | `rand` `neighbor` `point` `angle` `time` | - |
 | SparkGrand | 665 | `smart` | `rand` `neighbor` `point` `angle` `time` | - |
 | GuideFrame | 669 | `smart` | `neighbor` `draw` `point` | - |
@@ -138,6 +136,9 @@
   sputteringCircle も同じものを使う
 - 16bit の画素と合成 (`fs_graphics8::Px16` / `pixel_blend16`)
 - 角度と距離から XY のずれを出す `utils::rot_length` (元の CRotCalc)
+- 画面全体をずらして拾い直すところと縁の処理 (`screen_shake`: 元の
+  FsScreenShake.h。透明/伸ばす/繰り返す/鏡 と深度ごとのバイリニア、
+  mm2px、揺れの量の決め方)。ScreenShakeDir と ScreenShakeMM が共有している
 
 まだ無くて、残りの移植で必要になるもの:
 

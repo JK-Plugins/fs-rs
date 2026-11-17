@@ -8,6 +8,8 @@ members = [
     "createalpha",
     "hlsreverse",
     "libs",
+    "screenshakemm",
+    "screenshakedir",
     "randomlinenoise",
     "randomshift",
     "mainlinerepaintold",
