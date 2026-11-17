@@ -746,6 +746,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "graytowaveline-fs"
+version = "0.0.1"
+dependencies = [
+ "after-effects",
+ "image",
+ "libs",
+ "log",
+ "pipl",
+ "win_dbg_logger",
+]
+
+[[package]]
 name = "guideframe-fs"
 version = "0.0.1"
 dependencies = [
