@@ -916,6 +916,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "innerflare-fs"
+version = "0.0.1"
+dependencies = [
+ "after-effects",
+ "image",
+ "libs",
+ "log",
+ "pipl",
+ "win_dbg_logger",
+]
+
+[[package]]
+name = "innerflarerot-fs"
+version = "0.0.1"
+dependencies = [
+ "after-effects",
+ "image",
+ "libs",
+ "log",
+ "pipl",
+ "win_dbg_logger",
+]
+
+[[package]]
 name = "interpolate_name"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"

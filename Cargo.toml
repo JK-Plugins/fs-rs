@@ -8,6 +8,8 @@ members = [
     "createalpha",
     "hlsreverse",
     "libs",
+    "innerflarerot",
+    "innerflare",
     "maxblur",
     "irotoreadjacent",
     "edgeblur",
