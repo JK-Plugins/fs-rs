@@ -4,6 +4,7 @@ pub mod fs_mosaic;
 pub mod hls;
 pub mod lab;
 pub mod minmax_vhgw;
+pub mod paint;
 pub mod screen_shake;
 pub mod spark;
 pub mod sputtering;
