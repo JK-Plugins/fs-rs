@@ -7,4 +7,5 @@ pub mod minmax_vhgw;
 pub mod screen_shake;
 pub mod spark;
 pub mod sputtering;
+pub mod tiny;
 pub mod utils;
