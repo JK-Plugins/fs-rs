@@ -10,4 +10,5 @@ pub mod shine;
 pub mod spark;
 pub mod sputtering;
 pub mod tiny;
+pub mod touchdraw;
 pub mod utils;
