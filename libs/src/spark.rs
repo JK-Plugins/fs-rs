@@ -519,11 +519,16 @@ pub struct LineDraw<C: Chan> {
 
 impl<C: Chan> LineDraw<C> {
     pub fn new(w: i64, h: i64) -> Self {
+        Self::with_point_size(w, h, PointList::SIZE_MAX)
+    }
+
+    /// 元の CLineDraw(.., bufSize)。SparkMult だけ 2048 を渡している。
+    pub fn with_point_size(w: i64, h: i64, size: usize) -> Self {
         Self {
             w,
             h,
             buf: vec![C::white(); (w * h).max(0) as usize],
-            points: PointList::new(),
+            points: PointList::with_size(size.max(256)),
         }
     }
 
