@@ -8,6 +8,7 @@ members = [
     "createalpha",
     "hlsreverse",
     "libs",
+    "namigarasu",
     "touchdrawstraght",
     "touchdraw",
     "starcolorful",

@@ -354,12 +354,28 @@ pub fn pset_alpha(buf: &mut Buf, pos_x: i64, pos_y: i64, opacity: i64, ops: &Ops
 ///
 /// どちらも TouchDrawCenter の `AlphaBlur` と同じ間違い。
 pub fn green_blur(buf: &mut Buf, ops: &Ops, faithful: bool) {
+    blur_to_alpha(buf, false, ops, faithful)
+}
+
+/// `green_blur` と同じもので、読むチャンネルを選べるようにしたもの。
+/// NamiGarasu の `AlphaBlur` (赤を読む) が元のソースでも同じ中身なので、
+/// `from_red` で切り替えて分け合っている。
+pub fn blur_to_alpha(buf: &mut Buf, from_red: bool, ops: &Ops, faithful: bool) {
     let (w, h) = (buf.w, buf.h);
     if w < 2 || h < 2 {
         return;
     }
-    let g = |x: i64, y: i64| buf.at(x, y).g;
-    let mut alpha = vec![0.0f64; buf.px.len()];
+    let g = |x: i64, y: i64| {
+        let p = buf.at(x, y);
+        if from_red {
+            p.r
+        } else {
+            p.g
+        }
+    };
+    // 元はその場でアルファに書き込むので、書かないところ (元の間違いで
+    // 残る四隅) は前の値のままになる。
+    let mut alpha: Vec<f64> = buf.px.iter().map(|p| p.a).collect();
     // 内側。
     for y in 1..(h - 1) {
         for x in 1..(w - 1) {
@@ -431,9 +447,9 @@ pub fn green_blur(buf: &mut Buf, ops: &Ops, faithful: bool) {
     };
     alpha[0] = corner(0, 0, 1, 1);
     if faithful {
-        // 右上: data[w-2] へ、w-2/w-1 列を読んで書く。
+        // 右上: 元の `w` は幅-1 なので、`data[w-2]` は右から3つめの列。
         let v = g(w - 3, 0) * 4.0 + g(w - 2, 0) * 8.0 + g(w - 3, 1) * 2.0 + g(w - 2, 1) * 4.0;
-        alpha[(w - 2) as usize] = div(v, 18.0);
+        alpha[(w - 3) as usize] = div(v, 18.0);
         // 左下。
         let v = g(0, h - 3) * 4.0 + g(1, h - 3) * 2.0 + g(0, h - 2) * 8.0 + g(1, h - 2) * 4.0;
         alpha[((h - 2) * w) as usize] = div(v, 18.0);
