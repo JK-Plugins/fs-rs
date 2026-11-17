@@ -3,6 +3,7 @@ pub mod fs_graphics8;
 pub mod fs_mosaic;
 pub mod hls;
 pub mod lab;
+pub mod minmax_vhgw;
 pub mod screen_shake;
 pub mod spark;
 pub mod sputtering;

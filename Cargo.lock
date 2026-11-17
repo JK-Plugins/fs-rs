@@ -1128,6 +1128,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "maxblur-fs"
+version = "0.0.1"
+dependencies = [
+ "after-effects",
+ "image",
+ "libs",
+ "log",
+ "pipl",
+ "win_dbg_logger",
+]
+
+[[package]]
 name = "maxfast-fs"
 version = "0.0.1"
 dependencies = [
