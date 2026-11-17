@@ -95,6 +95,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "animatednoise-fs"
+version = "0.0.1"
+dependencies = [
+ "after-effects",
+ "image",
+ "libs",
+ "log",
+ "pipl",
+ "win_dbg_logger",
+]
+
+[[package]]
 name = "anyhow"
 version = "1.0.98"
 source = "registry+https://github.com/rust-lang/crates.io-index"
