@@ -8,6 +8,8 @@ members = [
     "createalpha",
     "hlsreverse",
     "libs",
+    "shineparallel",
+    "shine",
     "paintmultpoint",
     "paint",
     "extractedge",
