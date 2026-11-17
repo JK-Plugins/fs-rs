@@ -44,7 +44,7 @@
 | grayToWaveLine | 945 | `classic` | `world` `neighbor` `draw` `point` | - |
 | ColorMatKey | 1088 | `smart` | `world` `neighbor` `suite` `time` | - |
 | MaxFast | 1132 | `smart` | `world` `neighbor` | - |
-| Filter | 1313 | `classic` | `time` | - |
+| Filter | 1896\*\*\* | `classic` | `world` `minimax` `blur` `neighbor` | - |
 | Max_Kasumi | 1375 | `smart` | `world` `neighbor` | - |
 | TouchDrawCenter | 1809 | `smart` | `rand` `neighbor` `point` | - |
 
@@ -92,6 +92,12 @@
 チェックボックスが既定で全部 OFF なので塗りつぶしに入らない。
 パラメータを振れるのは classic 経路だけなので、どう組んでも塗りつぶしの
 画素を比較できない。
+
+\*\*\* `Filter` は .cpp が 407 行だが、処理の本体は同じフォルダの
+`FilterExec08/16.cpp` `FilterSub16.cpp` `FilterMax16.cpp` `FilterBlur16.cpp`
+にあり、実際は 1900 行ほど。明暗の抜き出し・最大最小・ぼかし・9種の合成を
+4組ぶん持つので、仕分けの `needs` も `time` だけではなく
+`world` `minimax` `blur` `neighbor` に直した。B 群というより C 群の大きさ。
 
 \*\* `CellGrad` の .cpp は 455 行だが、処理の本体は同じフォルダの
 `FWorldGrad.h` (729 行: 色の選択・マスク・最大最小・走査矩形) と
