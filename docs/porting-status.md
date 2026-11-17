@@ -2,7 +2,7 @@
 
 元: [F's Plugins](https://github.com/bryful/F-s-PluginsProjects) の `Legacy/Project`。
 
-移植した 79 本はすべて、出荷されている .aex とパラメータ構成 (型・範囲・既定値・色・
+移植した 85 本はすべて、出荷されている .aex とパラメータ構成 (型・範囲・既定値・色・
 ポップアップ項目) が一致し、[AEXCompat](https://github.com/onmokoworks/AEXCompat) で
 画素を突き合わせてある。意図して元と違えているのはバグ修正ぶんだけ。
 
@@ -12,12 +12,14 @@
 - **`Minimax` を通る経路** (`Max` など)。元は `Minimax` を呼ぶたびにワールドを
   2つ漏らす (`dispose` が `Minimax` では埋まらない別のメンバで条件分けされている)。
   AEXCompat は `world_lifetimes_balanced` を満たせないセッションを閉じないので、
-  フィルタが効く値では元を描かせられない。値 0 の素通しだけ比較できる
+  フィルタが効く値では元を描かせられない。値 0 の素通しだけ比較できる。
+  なお `MaxFast` はこの `Minimax` ではなく自前の実装 (van Herk / Gil-Werman) で、
+  ワールドを `new`/`dispose` で釣り合わせているので値を振っても比較できた
 - **16/32bit で既定以外のパラメータを使う経路**。classic 経路は 8bit 専用で、
   深度を選べる smart 経路はパラメータを取らないため
 - **`Paint` / `PaintMultPoint` の塗りつぶし** (下の D 群の注を参照)
 
-以下は**まだ移植していない 32 本**の仕分け。`lines` は .cpp の行数、
+以下は**まだ移植していない 26 本**の仕分け。`lines` は .cpp の行数、
 `oracle` は元と画素比較する手段:
 
 | oracle | 意味 |
@@ -35,18 +37,11 @@
 
 ## A: 小さくて部品も揃っている
 
-**全部移植した。** 次に着手するのは B 群。
+**全部移植した。**
 
 ## B: 中くらい。既存の部品で足りるが読む量が増える
 
-| project | lines | oracle | needs | 双子 |
-|---|---|---|---|---|
-| grayToWaveLine | 945 | `classic` | `world` `neighbor` `draw` `point` | - |
-| ColorMatKey | 1088 | `smart` | `world` `neighbor` `suite` `time` | - |
-| MaxFast | 1132 | `smart` | `world` `neighbor` | - |
-| Filter | 1896\*\*\* | `classic` | `world` `minimax` `blur` `neighbor` | - |
-| Max_Kasumi | 1375 | `smart` | `world` `neighbor` | - |
-| TouchDrawCenter | 1809 | `smart` | `rand` `neighbor` `point` | - |
+**全部移植した。** 次に着手するのは C 群。
 
 ## C: 大物。乱数 + 幾何 + ワールドが絡む
 
@@ -92,12 +87,6 @@
 チェックボックスが既定で全部 OFF なので塗りつぶしに入らない。
 パラメータを振れるのは classic 経路だけなので、どう組んでも塗りつぶしの
 画素を比較できない。
-
-\*\*\* `Filter` は .cpp が 407 行だが、処理の本体は同じフォルダの
-`FilterExec08/16.cpp` `FilterSub16.cpp` `FilterMax16.cpp` `FilterBlur16.cpp`
-にあり、実際は 1900 行ほど。明暗の抜き出し・最大最小・ぼかし・9種の合成を
-4組ぶん持つので、仕分けの `needs` も `time` だけではなく
-`world` `minimax` `blur` `neighbor` に直した。B 群というより C 群の大きさ。
 
 \*\* `CellGrad` の .cpp は 455 行だが、処理の本体は同じフォルダの
 `FWorldGrad.h` (729 行: 色の選択・マスク・最大最小・走査矩形) と
