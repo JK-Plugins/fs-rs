@@ -2,7 +2,7 @@
 
 元: [F's Plugins](https://github.com/bryful/F-s-PluginsProjects) の `Legacy/Project`。
 
-移植した 65 本はすべて、出荷されている .aex とパラメータ構成 (型・範囲・既定値・色・
+移植した 66 本はすべて、出荷されている .aex とパラメータ構成 (型・範囲・既定値・色・
 ポップアップ項目) が一致し、[AEXCompat](https://github.com/onmokoworks/AEXCompat) で
 画素を突き合わせてある。意図して元と違えているのはバグ修正ぶんだけ。
 
@@ -17,7 +17,7 @@
   深度を選べる smart 経路はパラメータを取らないため
 - **`Paint` / `PaintMultPoint` の塗りつぶし** (下の D 群の注を参照)
 
-以下は**まだ移植していない 46 本**の仕分け。`lines` は .cpp の行数、
+以下は**まだ移植していない 45 本**の仕分け。`lines` は .cpp の行数、
 `oracle` は元と画素比較する手段:
 
 | oracle | 意味 |
@@ -56,7 +56,6 @@
 | ColorMatKey | 1088 | `smart` | `world` `neighbor` `suite` `time` | - |
 | MaxFast | 1132 | `smart` | `world` `neighbor` | - |
 | Filter | 1313 | `classic` | `time` | - |
-| LineDetection | 1337 | `smart` | `neighbor` | - |
 | Max_Kasumi | 1375 | `smart` | `world` `neighbor` | - |
 | MainLineRepaint_old | 1378 | `classic` | `neighbor` `draw` `time` | - |
 | MainLineRepaint | 1396 | `smart` | `neighbor` | - |

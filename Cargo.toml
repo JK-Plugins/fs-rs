@@ -8,6 +8,7 @@ members = [
     "createalpha",
     "hlsreverse",
     "libs",
+    "linedetection",
     "colorthreshold",
     "videogrid",
     "channelnoise",
