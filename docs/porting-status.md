@@ -1,13 +1,27 @@
-# 移植の進み具合と残りの仕分け
+# 移植の進み具合
 
 元: [F's Plugins](https://github.com/bryful/F-s-PluginsProjects) の `Legacy/Project`。
 
-移植した 85 本はすべて、出荷されている .aex とパラメータ構成 (型・範囲・既定値・色・
-ポップアップ項目) が一致し、[AEXCompat](https://github.com/onmokoworks/AEXCompat) で
-画素を突き合わせてある。意図して元と違えているのはバグ修正ぶんだけ。
+**109 本すべて移植した。** ソースが `Legacy/Project` にあるものは、出荷された .aex が
+無いもの (`ChannelBlur` / `ShineParallel` / `Spark_Test` / `Extract_Edge`) も含めて
+ぜんぶ入っている。
 
-ただし**元の都合で画素を比べられない経路がいくつかある**。各コミットに書いてあるが、
-まとめると:
+移植したものはすべて、出荷されている .aex とパラメータ構成 (型・範囲・既定値・色・
+ポップアップ項目) が一致し、[AEXCompat](https://github.com/onmokoworks/AEXCompat) で
+画素を突き合わせてある。意図して元と違えているのはバグ修正ぶんだけで、どの修正にも
+`FAITHFUL` で元に戻す口を付けて「直したところ以外は画素まで一致する」ことを
+確かめてある (戻せない事情があるものは下に書いた)。
+
+確かめかたは `scratchpad` の3本:
+
+- `port_compare.py <crate>` — classic 経路で元と移植を同じパラメータで描かせて
+  画素を突き合わせる。`FAITHFUL=1` で「直したバグを戻した版」を回す
+- `audit_layouts.py` — 出荷 .aex と移植のパラメータ構成を総当たりで見比べる
+- 各クレートの `cargo test` — 手順ごとの単体テスト
+
+## 元の都合で画素を比べられないところ
+
+各コミットに書いてあるが、まとめると:
 
 - **`Minimax` を通る経路** (`Max` など)。元は `Minimax` を呼ぶたびにワールドを
   2つ漏らす (`dispose` が `Minimax` では埋まらない別のメンバで条件分けされている)。
@@ -17,94 +31,53 @@
   ワールドを `new`/`dispose` で釣り合わせているので値を振っても比較できた
 - **16/32bit で既定以外のパラメータを使う経路**。classic 経路は 8bit 専用で、
   深度を選べる smart 経路はパラメータを取らないため
-- **`Paint` / `PaintMultPoint` の塗りつぶし** (下の D 群の注を参照)
+- **`Paint` / `PaintMultPoint` の塗りつぶし**。どちらも元の classic の `Render` が
+  パラメータを読むだけで `Exec()` を呼んでいない (`Paint` は入力のコピーまで、
+  `PaintMultPoint` は出力に何も書かない)。塗りつぶしは smart 経路にしかなく、
+  その smart 経路は `Paint` では AEXCompat で落ち、`PaintMultPoint` では
+  チェックボックスが既定で全部 OFF なので塗りつぶしに入らない
+- **`Star_Colorful` の下の縁**。元の `GetPX` が縦のはみ出しで `xx` に代入していて
+  (`yy` のつもり)、いちばん下の行でワールドの外を読む。読んだ値は決まって
+  いないので、下の縁から「光の長さ + 1」行を外して突き合わせてある
+  (残りは 13 通りぜんぶ画素まで一致)
+- **`TouchDraw` / `TouchDrawStraght` の `blockDraw`** (`Block_Value` で四角を置いて
+  旗を消すところ)。四角は乱数4つで決まるだけなのに、出荷版が消す四角が
+  ソースのとおりの式にならない (大きさ・枚数・乱数を捨てる数を総当たりしても
+  合わない)。乱数そのものとほかの段は合っていて、`Block_Value` を 0 にした回は
+  種を4通り × ばらつきの入り切りの8通りでぜんぶ画素まで一致する。出荷版の
+  `blockDraw` は手元のソースと違うものだとみて、ソースのとおりに移植してある
+- **`Thin` の `EdgeFilter`**。元はこの走査だけマルチスレッドで、担当の継ぎ目の行が
+  0 埋めの写しを読む。しかも分ける数が `hardware_concurrency()` なので出る絵が
+  機械のコア数で変わる。1本の走査に直したので、`EdgeFilter` を入れた回だけ
+  継ぎ目の行に数画素の差が出る (それがこの直しの裏づけになっている)
 
-以下は**まだ移植していない 26 本**の仕分け。`lines` は .cpp の行数、
-`oracle` は元と画素比較する手段:
+## 直したバグ
 
-| oracle | 意味 |
-|---|---|
-| `smart` | AEXCompat の smart 経路で元が描ける (既定値での比較) |
-| `classic` | smart では落ちるが classic 経路なら描ける (パラメータを振れる) |
-| `none` | どちらの経路でも元が描けない。移植しても突き合わせられない |
-| `no-binary` | 出荷 .aex が無い。古い作業用プロジェクトと思われる |
+元の見た目をそのまま引き継ぐのではなく、**明らかなバグは直す** 方針で移植した
+(それがモダン化の目的)。直したものは各クレートの先頭の注と、`FAITHFUL` の
+切り替えに書いてある。多かったのは:
 
-`needs` はソースを grep して出した必要な部品:
-`rand` 乱数列 / `world` 一時ワールドやハンドル / `neighbor` 近傍参照 /
-`minimax` 最大最小フィルタ / `blur` ぼかし / `draw` 線や矩形の描画 /
-`point` 座標 / `angle` 角度 / `time` フレーム依存 / `suite` AE のカラースイート /
-`preset` .pref の読み書き / `button` ボタン。
-
-## A: 小さくて部品も揃っている
-
-**全部移植した。**
-
-## B: 中くらい。既存の部品で足りるが読む量が増える
-
-**全部移植した。** 次に着手するのは C 群。
-
-## C: 大物。乱数 + 幾何 + ワールドが絡む
-
-| project | lines | oracle | needs | 双子 |
-|---|---|---|---|---|
-| CellGrad | 455 (+919)** | `smart` | `world` `draw` `minimax` `angle` | - |
-| SelectedBlur | 1130 | `smart` | `world` `neighbor` `blur` | - |
-| EdgeBlur | 1181 | `smart` | `world` `neighbor` `blur` | - |
-| IroToreAdjacent | 1827 | `smart` | `world` `neighbor` `blur` | - |
-| MaxBlur | 2009 | `smart` | `world` `neighbor` | InnerFlare_old, InnerFlareRot_old |
-| Star | 2122 | `smart` | `neighbor` `angle` | - |
-| TouchDrawStraght | 2213 | `smart` | `rand` `neighbor` `blur` `angle` | TouchDraw |
-| TouchDraw | 2358 | `smart` | `rand` `neighbor` `blur` `point` | TouchDrawStraght |
-| NamiGarasu | 2369 | `smart` | `rand` `neighbor` `angle` `time` | - |
-| InnerFlareRot_old | 2373 | `smart` | `world` `neighbor` `angle` | InnerFlare_old, MaxBlur |
-| PaperPlaneGetWeightInfo | 2413 | `classic` | `world` `neighbor` `draw` | - |
-| IroTore | 3013 | `smart` | `world` `neighbor` `blur` `angle` `suite` | - |
-| Flare | 3274 | `classic` | `world` `neighbor` | - |
-| ShitsuKanBlur | 3510 | `smart` | `rand` `world` `neighbor` `angle` `time` | - |
-| Star_Colorful | 4271 | `smart` | `world` `neighbor` `angle` `suite` `time` | - |
-| Thin | 5895 | `smart` | `world` `neighbor` | - |
-
-## D: 元と画素比較できない (出荷バイナリが無い / AEXCompat で描けない)
-
-| project | lines | oracle | needs | 双子 |
-|---|---|---|---|---|
-| ChannelBlur | 263 | `no-binary` | - | - |
-| Frame | 324 | `none` | `draw` | FsSSFrame |
-| FsSSFrame | 324 | `none` | `draw` | Frame |
-| Paint | 387 | `none`* | `point` | - |
-| PaintMultPoint | 398 | `none`* | `point` | - |
-| Spark_Test | 413 | `no-binary` | `rand` `neighbor` `point` | - |
-| Extract_Edge | 416 | `no-binary` | `neighbor` | - |
-| Shine | 1148 | `none` | `rand` `world` `neighbor` `point` | ShineParallel |
-| ShineParallel | 1165 | `no-binary` | `rand` `world` `neighbor` `angle` | Shine |
-| InnerFlare_old | 2313 | `none` | `world` `neighbor` | InnerFlareRot_old, MaxBlur |
-
-\* `Paint` / `PaintMultPoint` は塗りつぶし (バケツ) が本体だが、それを
-元と突き合わせる手段が無い。**どちらも元の classic の Render が
-パラメータを読むだけで `Exec()` を呼んでいない** (`Paint` は入力のコピーまで、
-`PaintMultPoint` は出力に何も書かない)。塗りつぶしは smart 経路にしかなく、
-その smart 経路は `Paint` では AEXCompat で落ち、`PaintMultPoint` では
-チェックボックスが既定で全部 OFF なので塗りつぶしに入らない。
-パラメータを振れるのは classic 経路だけなので、どう組んでも塗りつぶしの
-画素を比較できない。
-
-\*\* `CellGrad` の .cpp は 455 行だが、処理の本体は同じフォルダの
-`FWorldGrad.h` (729 行: 色の選択・マスク・最大最小・走査矩形) と
-`FRectGrad.h` (190 行: 角度と伸ばし量から回転した矩形を出す) にあり、
-どちらも libs に相当する部品が無い。実際の大きさは 1400 行ほど。
+- **32bit (と 16bit) の経路が空**。`case PF_PixelFormat_ARGB128: break;` で
+  何もしないものが多い (`IroTore` / `Flare` / `grayToWaveLine` / `Filter` /
+  `IroToreAdjacent` / `PaperPlaneGetWeightInfo` など)。8bit と同じ道を通すようにした
+- **縁の押さえ違い**。`if (yy >= height) xx = height - 1;` のように別の変数へ
+  代入しているもの (`Extract_Edge` / `Star_Colorful`)
+- **ぼかしの四隅と辺**。`TouchDrawCenter` 系の `AlphaBlur` は四隅3つの読み書きが
+  1行 (1列) ずれていて、角にぼかしが掛からない。`TouchDraw` / `NamiGarasu` も
+  同じ中身を持っていた
+- **使われない結果**。`TouchDraw` の `copyAlpha` がぼかす前の緑を使っていて、
+  直前の `greenBlur` の結果が一度も絵に出てこなかった
+- **classic 経路で描かない**。`Paint` / `PaintMultPoint` の `Render` が `Exec` を
+  呼んでいない
+- **非 ASCII のパラメータ名**。AE 上では空の名前になるので英語にした
+  (`IroTore` の「あきらめ色」→ `GiveUpColor` など)
 
 ## 双子について
 
 ソースがほぼ同じ組がいくつかある (`Unmult_RG` と `Unmult_KNSW`、`Tone` と `Toner` は
 実際に #include 行以外同じだった)。片方を移植すればもう片方はほぼ無料なので、
-組になっているものは続けて片付けるのが得。
-
-## 出荷バイナリとソースの対応
-
-出荷されている .aex は 107 本あり、**すべてソースが `Legacy/Project` にある**
-(プロジェクト名が `_old` / `_Fake` 付きで出荷名と違うものがあるだけ)。
-逆にソースだけあって出荷されていないものが 4 本ある
-(`ChannelBlur` / `ShineParallel` / `Spark_Test` / `Extract_Edge`)。
+組になっているものは続けて片付けた。`TouchDraw` / `TouchDrawStraght` は
+`scratchpad/gen_touchdrawstraght.py` で片方からもう片方を作っている。
 
 ## 部品の状況
 
@@ -113,6 +86,7 @@
 - 丸め・深度変換 (`utils`): 元の `Round*` が切り捨てであること、
   `FS_CONVERT8TO32` が小数4桁に量子化すること、double 版が要る場所まで含めて合わせてある
 - 最大最小フィルタ (`fs_graphics8::minimax8` / `minimax_alpha8`、f32 版も)
+- 最大最小の速い版 (`minmax_vhgw`: van Herk / Gil-Werman。MaxFast が使う)
 - ぼかし (`fs_graphics8::gblur8`)
 - 乱数 (`fs_graphics::XorShift`: 整数版・double 版・`F_RAND_D1` 相当。種まきも元と同じ)
 - HLS (`hls`) と Lab (`lab`)
@@ -130,10 +104,25 @@
 - 画面全体をずらして拾い直すところと縁の処理 (`screen_shake`: 元の
   FsScreenShake.h。透明/伸ばす/繰り返す/鏡 と深度ごとのバイリニア、
   mm2px、揺れの量の決め方)。ScreenShakeDir と ScreenShakeMM が共有している
+- 小さい絵への最大最小・ぼかし・双曲線 (`tiny`: MaxBlur と InnerFlare 系が
+  共有する。元の `*10` の取りこぼしを `Quirk` で切り替えられる)
+- バケツ塗り (`paint`: Paint と PaintMultPoint が共有)
+- 光条 (`shine`: Shine と ShineParallel が共有)
+- タッチ描きの共通部分 (`touchdraw`: 対象探し・四角の間引き・点の置きかた・
+  赤 (緑) をぼかしてアルファに入れるところ・色付け。TouchDraw /
+  TouchDrawStraght / NamiGarasu が共有)
 
-まだ無くて、残りの移植で必要になるもの:
+元のデータ表をそのまま持ってきたもの:
 
-- 円の描画 (`Circle` 系) — 残りには見当たらない (sputteringCircle は円を
-  描かず円の中に乱数で点を置くだけ、GuideFrame も矩形だけだった)
-- カスタム UI (`PF_ADD_NULL` + 描画イベント) — 今のところ残りには見当たらない
-- `.pref` の読み書き (TargetGrad 系のボタン。描画には影響しない)
+- `namigarasu/src/sq_data.bin` — 丸のビットマップ11枚 (10x10〜200x200)
+- `paperplaneweight/src/font.bin` — 12x18 のビットマップフォント (ASCII 95字)
+
+## 残っている宿題
+
+絵には影響しないが、まだ手を付けていないもの:
+
+- `AlphaHyperbolic` だけ、元の .aep で保存した値が復元されない
+  (matchName は合っているのに。原因は未解明)
+- `PixelSelector` / `PixelReplace` の `Disp` / `Use Count` の supervise
+  (出し入れの連動) が無い
+- `TargetGrad` 系の colorTable の読み書きボタン (`.pref`)
