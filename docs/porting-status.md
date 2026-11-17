@@ -2,7 +2,7 @@
 
 元: [F's Plugins](https://github.com/bryful/F-s-PluginsProjects) の `Legacy/Project`。
 
-移植した 72 本はすべて、出荷されている .aex とパラメータ構成 (型・範囲・既定値・色・
+移植した 73 本はすべて、出荷されている .aex とパラメータ構成 (型・範囲・既定値・色・
 ポップアップ項目) が一致し、[AEXCompat](https://github.com/onmokoworks/AEXCompat) で
 画素を突き合わせてある。意図して元と違えているのはバグ修正ぶんだけ。
 
@@ -17,7 +17,7 @@
   深度を選べる smart 経路はパラメータを取らないため
 - **`Paint` / `PaintMultPoint` の塗りつぶし** (下の D 群の注を参照)
 
-以下は**まだ移植していない 39 本**の仕分け。`lines` は .cpp の行数、
+以下は**まだ移植していない 38 本**の仕分け。`lines` は .cpp の行数、
 `oracle` は元と画素比較する手段:
 
 | oracle | 意味 |
@@ -43,7 +43,6 @@
 |---|---|---|---|---|
 | SparkRing | 634 | `smart` | `rand` `neighbor` `point` `angle` `time` | - |
 | SparkGrand | 665 | `smart` | `rand` `neighbor` `point` `angle` `time` | - |
-| GuideFrame | 669 | `smart` | `neighbor` `draw` `point` | - |
 | Spark | 694 | `smart` | `rand` `neighbor` `point` `angle` `time` | SparkStorm |
 | SparkStorm | 701 | `smart` | `rand` `neighbor` `point` `angle` `time` | Spark |
 | SparkMult | 773 | `smart` | `rand` `neighbor` `point` `angle` `time` | - |
@@ -142,7 +141,7 @@
 
 まだ無くて、残りの移植で必要になるもの:
 
-- 円の描画 (`Circle` 系) — GuideFrame など (sputteringCircle は円を描かず、
-  円の中に乱数で点を置くだけだったので要らなかった)
+- 円の描画 (`Circle` 系) — 残りには見当たらない (sputteringCircle は円を
+  描かず円の中に乱数で点を置くだけ、GuideFrame も矩形だけだった)
 - カスタム UI (`PF_ADD_NULL` + 描画イベント) — 今のところ残りには見当たらない
 - `.pref` の読み書き (TargetGrad 系のボタン。描画には影響しない)
