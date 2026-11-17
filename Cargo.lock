@@ -421,6 +421,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "colormatkey-fs"
+version = "0.0.1"
+dependencies = [
+ "after-effects",
+ "image",
+ "libs",
+ "log",
+ "pipl",
+ "win_dbg_logger",
+]
+
+[[package]]
 name = "colorthreshold-fs"
 version = "0.0.1"
 dependencies = [

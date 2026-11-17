@@ -8,6 +8,7 @@ members = [
     "createalpha",
     "hlsreverse",
     "libs",
+    "colormatkey",
     "graytowaveline",
     "animatednoise",
     "sparkmult",

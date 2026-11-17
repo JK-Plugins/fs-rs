@@ -42,6 +42,12 @@ fn pivot(t: f64) -> f64 {
 /// y = 0.008856 のところで L が 0 から 0.0799 (8bit で 20) へ飛ぶ。
 /// ここでは線形側の -0.16 を外して連続にしてある。黒は L = 0 になる。
 pub fn rgb_to_lab(red: f64, green: f64, blue: f64, alpha: f32) -> LABA {
+    rgb_to_lab_with(red, green, blue, alpha, false)
+}
+
+/// `faithful` を立てると線形側の `-0.16` を元どおり引く。元の .aex との
+/// 画素比較のためだけにある入口。
+pub fn rgb_to_lab_with(red: f64, green: f64, blue: f64, alpha: f32, faithful: bool) -> LABA {
     let sr = linearize(red);
     let sg = linearize(green);
     let sb = linearize(blue);
@@ -60,7 +66,14 @@ pub fn rgb_to_lab(red: f64, green: f64, blue: f64, alpha: f32) -> LABA {
         (fy, 1.16 * fy - 0.16)
     } else {
         // 元はここでも -0.16 を引いていた (上のコメント参照)。
-        (7.787 * y + 16.0 / 116.0, 9.033 * y)
+        (
+            7.787 * y + 16.0 / 116.0,
+            if faithful {
+                9.033 * y - 0.16
+            } else {
+                9.033 * y
+            },
+        )
     };
 
     let fx = pivot(x);
