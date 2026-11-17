@@ -8,6 +8,7 @@ members = [
     "createalpha",
     "hlsreverse",
     "libs",
+    "touchdrawcenter",
     "maxkasumi",
     "maxfast",
     "colormatkey",
