@@ -1819,6 +1819,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "sparkring-fs"
+version = "0.0.1"
+dependencies = [
+ "after-effects",
+ "image",
+ "libs",
+ "log",
+ "pipl",
+ "win_dbg_logger",
+]
+
+[[package]]
 name = "sputteringalpha-fs"
 version = "0.0.1"
 dependencies = [
