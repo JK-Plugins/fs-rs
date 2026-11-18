@@ -236,10 +236,8 @@ pub fn target_remove(out: &mut Buf, count: i64, diag: bool, ops: &Ops) -> i64 {
             if out.at(x, y).a != ops.max {
                 continue;
             }
-            let mut v = if ops.float { 1.0 } else { ops.max } as i64;
-            if ops.float {
-                v = 1;
-            }
+            // 元の `A_long v = PF_MAX_CHAN8` (32bit 版は 1)。
+            let mut v = if ops.float { 1 } else { ops.max as i64 };
             let mut best: Option<Px> = None;
             // 元の CHK_PX は v が 0 より大きいあいだだけ見る。
             for (dx, dy) in dirs {

@@ -153,12 +153,17 @@ impl Scan {
 
     /// 元の scanlineCopy(y)。y=0 は上の行を2回ぶん、いちばん下の行では
     /// 3行目を読み直さない (結果としてどちらも縁を押さえた形になる)。
+    ///
+    /// 高さが1しか無いときは下の行が存在しない。元は y=0 のとき下の行を
+    /// 無条件に読むので、そこでワールドの外を触る (C では次の行の中身が
+    /// そのまま入るだけで落ちない)。ここでは縁を押さえて同じ行を使う。
     fn copy(&mut self, buf: &Buf, y: i64) {
         if y == 0 {
             for i in 0..self.w as usize {
                 self.rows[0][i] = buf.px[i];
                 self.rows[1][i] = buf.px[i];
-                self.rows[2][i] = buf.px[i + buf.w as usize];
+                let below = if buf.h > 1 { i + buf.w as usize } else { i };
+                self.rows[2][i] = buf.px[below];
             }
         } else {
             self.rows.swap(0, 1);
@@ -884,6 +889,19 @@ mod tests {
         let after = b.px.iter().filter(|p| p.r == 0.0).count();
         assert!(after < before, "{before} -> {after}");
         assert!(after > 0, "線は残る");
+    }
+
+    /// 縦1画素・横1画素のレイヤーでも落ちない (下の行が無い回)。
+    #[test]
+    fn a_one_pixel_tall_layer_is_safe() {
+        let o = ops8();
+        for (w, h) in [(8, 1), (1, 8), (1, 1)] {
+            let mut b = Buf::new(w, h);
+            b.px.iter_mut().for_each(|p| *p = px(255.0));
+            b.set(w / 2, h / 2, px(0.0));
+            exec(&mut b, &info(2), &o);
+            assert_eq!(b.px.len(), (w * h) as usize, "{w}x{h}");
+        }
     }
 
     /// `ThinValue` を増やすほど細くなる。

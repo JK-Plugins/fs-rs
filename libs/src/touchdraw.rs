@@ -447,16 +447,21 @@ pub fn blur_to_alpha(buf: &mut Buf, from_red: bool, ops: &Ops, faithful: bool) {
     };
     alpha[0] = corner(0, 0, 1, 1);
     if faithful {
-        // 右上: 元の `w` は幅-1 なので、`data[w-2]` は右から3つめの列。
-        let v = g(w - 3, 0) * 4.0 + g(w - 2, 0) * 8.0 + g(w - 3, 1) * 2.0 + g(w - 2, 1) * 4.0;
-        alpha[(w - 3) as usize] = div(v, 18.0);
-        // 左下。
-        let v = g(0, h - 3) * 4.0 + g(1, h - 3) * 2.0 + g(0, h - 2) * 8.0 + g(1, h - 2) * 4.0;
-        alpha[((h - 2) * w) as usize] = div(v, 18.0);
-        // 右下。
-        let v = g(w - 2, h - 3) * 2.0 + g(w - 1, h - 3) * 4.0 + g(w - 2, h - 2) * 4.0
-            + g(w - 1, h - 2) * 8.0;
-        alpha[(w - 2 + (h - 2) * w) as usize] = div(v, 18.0);
+        // 元のずれは1行 (1列) 内側を読み書きするので、幅か高さが 3 に
+        // 足りないと絵の外へ出てしまう (元はワールドの外を触っている)。
+        // そこは再現できないので何も書かない。
+        if w >= 3 && h >= 3 {
+            // 右上: 元の `w` は幅-1 なので、`data[w-2]` は右から3つめの列。
+            let v = g(w - 3, 0) * 4.0 + g(w - 2, 0) * 8.0 + g(w - 3, 1) * 2.0 + g(w - 2, 1) * 4.0;
+            alpha[(w - 3) as usize] = div(v, 18.0);
+            // 左下。
+            let v = g(0, h - 3) * 4.0 + g(1, h - 3) * 2.0 + g(0, h - 2) * 8.0 + g(1, h - 2) * 4.0;
+            alpha[((h - 2) * w) as usize] = div(v, 18.0);
+            // 右下。
+            let v = g(w - 2, h - 3) * 2.0 + g(w - 1, h - 3) * 4.0 + g(w - 2, h - 2) * 4.0
+                + g(w - 1, h - 2) * 8.0;
+            alpha[(w - 2 + (h - 2) * w) as usize] = div(v, 18.0);
+        }
     } else {
         alpha[(w - 1) as usize] = corner(w - 1, 0, w - 2, 1);
         alpha[((h - 1) * w) as usize] = corner(0, h - 1, 1, h - 2);
