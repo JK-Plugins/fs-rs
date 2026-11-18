@@ -83,16 +83,20 @@ impl AdobePluginGlobal for Plugin {
         in_data: InData,
         _: OutData,
     ) -> Result<(), Error> {
+        // 許容差を8bit単位でそのまま指定する。1 動かすと色の差が 1 変わるので、
+        // パーセント指定より直感的で、元の F's ColorChange もこうなっている:
+        //   PF_ADD_SLIDER(STR_LV, 0, PF_MAX_CHAN8, 0, 15, 0, ID_LEVEL)
+        // 入力できる範囲は 0..255 だがスライダーは 0..15 までという作りで、
+        // 実用上は小さい値しか使わないので細かくドラッグできるようにしてある。
         params.add(
             Params::Level,
             "level",
-            ae::FloatSliderDef::setup(|f| {
-                f.set_default(0.0);
-                f.set_precision(1); // 小数点以下の桁数
-                f.set_valid_min(0.0);
-                f.set_valid_max(100.0);
-                f.set_slider_min(0.0);
-                f.set_slider_max(100.0);
+            ae::SliderDef::setup(|f| {
+                f.set_valid_min(0);
+                f.set_valid_max(MAX_CHANNEL8 as i32);
+                f.set_slider_min(0);
+                f.set_slider_max(15);
+                f.set_default(0);
                 f.set_value(f.default());
             }),
         )?;
@@ -569,13 +573,14 @@ impl Plugin {
         mut out_layer: ae::Layer,
         params: &mut ae::Parameters<Params>,
     ) -> Result<(), Error> {
-        let level = params.get(Params::Level)?.as_float_slider()?.value();
-        let level = (MAX_CHANNEL8 as f64 * level / 100.0) as u8; // Convert to 0-255 range
-                                                                 // 0.0 - 100.0 => 0 - 255
-                                                                 // let level = (MAX_CHANNEL8 as f64 * level / 100.0) as u8; // Convert to 0-255 range
-                                                                 // いどう
-                                                                 // let src_color = params.get(Params::SrcColor0)?.as_color()?.value();
-                                                                 // let dst_color = params.get(Params::DstColor0)?.as_color()?.value();
+        // すでに8bit単位なので変換は要らない。パーセントから換算していたときは
+        // 0..100 を 0..255 に写していたため、到達できない8bit値があり、丸めも
+        // 切り捨てだった (元の F's ColorChange は RoundByteLong(idx) でそのまま使う)。
+        let level = params
+            .get(Params::Level)?
+            .as_slider()?
+            .value()
+            .clamp(0, MAX_CHANNEL8 as i32) as u8;
 
         let color_pairs = Plugin::collect_enabled_color_pairs(params)?;
 
