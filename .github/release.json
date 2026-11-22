@@ -1,0 +1,8 @@
+{
+  "repo": "JK-Plugins/fs-rs",
+  "name": "JK-Plugins Fs",
+  "file_prefix": "JK-Plugins-Fs",
+  "installer_app_id": "efa3ceb0-2b20-4a9e-bdbb-009226d46f0f",
+  "pkg_identifier": "com.jk-plugins.fs-rs",
+  "uninstall_dir": "JK-Plugins Fs"
+}

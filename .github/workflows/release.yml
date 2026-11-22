@@ -1,0 +1,134 @@
+# まとめリリース：Actions の「Run workflow」ボタン（または vYYYY.MM.DD タグの push）で、
+# 全プラグインの最新版をビルドしてリリースする。
+# - タグはボタンなら今日の日付（日本時間）で自動。同じ日の2回目以降は .2, .3 …
+# - Windows はインストーラー（Inno Setup）と zip、macOS は pkg を作る
+# - バージョンが新しいプラグインだけ、<crate>-v<version> の個別アーカイブも作る
+# - バージョンの上げ忘れ（プラグインが変わったのに version が同じ）は plan で失敗する
+# - プルリクエストでは計画とビルドだけ行い、リリースはしない（作られるファイルの確認用）
+name: Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v[0-9][0-9][0-9][0-9].[0-9][0-9].[0-9][0-9]*"
+  pull_request:
+
+concurrency:
+  group: release-${{ github.event_name == 'pull_request' && github.ref || 'publish' }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.plan.outputs.tag }}
+      bundle_version: ${{ steps.plan.outputs.bundle_version }}
+      name: ${{ steps.plan.outputs.name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # タグと履歴（前回のリリースとの比較）に必要
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Plan
+        id: plan
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            python3 .github/scripts/release.py plan --tag "${{ github.ref_name }}" --out plan
+          else
+            python3 .github/scripts/release.py plan --out plan
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plan
+          path: plan/
+
+  build-windows:
+    needs: plan
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/download-artifact@v4
+        with:
+          name: plan
+          path: plan
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup -y --no-progress
+          }
+      - name: Build
+        run: python .github/scripts/release.py package-windows --plan plan/plan.json --out dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            dist/*.aex
+            dist/*.zip
+            dist/*-setup.exe
+
+  build-macos:
+    needs: plan
+    runs-on: macos-latest
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "11.0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/download-artifact@v4
+        with:
+          name: plan
+          path: plan
+      - name: Build
+        run: python3 .github/scripts/release.py package-macos --plan plan/plan.json --out dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: |
+            dist/*.plugin.zip
+            dist/*.pkg
+
+  publish:
+    needs: [plan, build-windows, build-macos]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ needs.plan.outputs.tag }}
+      VERSION: ${{ needs.plan.outputs.bundle_version }}
+      NAME: ${{ needs.plan.outputs.name }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Bundle release
+        run: |
+          sha=$(jq -r .sha artifacts/plan/plan.json)
+          gh release create "$TAG" \
+            --target "$sha" \
+            --title "$NAME $VERSION" \
+            --notes-file artifacts/plan/notes.md \
+            --latest \
+            artifacts/windows/* artifacts/macos/*
+      - name: Per-plugin archives (new versions only)
+        run: |
+          sha=$(jq -r .sha artifacts/plan/plan.json)
+          jq -c '.plugins[] | select(.new_version)' artifacts/plan/plan.json | while read -r p; do
+            tag=$(echo "$p" | jq -r .archive_tag)
+            name=$(echo "$p" | jq -r .plugin_name)
+            version=$(echo "$p" | jq -r .version)
+            stem=$(echo "$p" | jq -r .asset_stem)
+            gh release create "$tag" \
+              --target "$sha" \
+              --title "$name $version" \
+              --notes "$name $version（まとめリリース $TAG に含まれる版）" \
+              --latest=false \
+              "artifacts/windows/$stem.aex" \
+              "artifacts/macos/$stem.plugin.zip"
+          done
+

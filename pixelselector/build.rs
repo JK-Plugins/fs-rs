@@ -3,11 +3,32 @@ use pipl::*;
 const PF_PLUG_IN_VERSION: u16 = 13;
 const PF_PLUG_IN_SUBVERS: u16 = 28;
 
+/// Cargo.toml の version を AE のエフェクトバージョンに変換する。
+/// AE_Effect_Version はビット幅が小さい（major 0-127 / minor 0-15 / patch 0-15）ので、
+/// 範囲外ならビルドを止める。
+fn effect_version() -> (u32, u32, u32) {
+    let part = |name: &str, max: u32| -> u32 {
+        let value: u32 = std::env::var(name)
+            .unwrap_or_else(|_| panic!("{name} is not set"))
+            .parse()
+            .unwrap_or_else(|_| panic!("{name} is not a number"));
+        assert!(
+            value <= max,
+            "{name}={value} exceeds the After Effects limit ({max}). Adjust version in Cargo.toml."
+        );
+        value
+    };
+    (
+        part("CARGO_PKG_VERSION_MAJOR", 127),
+        part("CARGO_PKG_VERSION_MINOR", 15),
+        part("CARGO_PKG_VERSION_PATCH", 15),
+    )
+}
+
 #[rustfmt::skip]
 fn main() {
-    const EFFECT_VERSION_MAJOR: u32 = 0;
-    const EFFECT_VERSION_MINOR: u32 = 0;
-    const EFFECT_VERSION_PATCH: u32 = 1;
+    // バージョンは Cargo.toml の version だけで管理する
+    let (effect_version_major, effect_version_minor, effect_version_patch) = effect_version();
 
     // メニューに出る表示名。
     const EFFECT_NAME: &str = "JK Pixel Selector F's";
@@ -34,9 +55,9 @@ fn main() {
         Property::AE_PiPL_Version { major: 2, minor: 0 },
         Property::AE_Effect_Spec_Version { major: PF_PLUG_IN_VERSION, minor: PF_PLUG_IN_SUBVERS },
         Property::AE_Effect_Version {
-            version: EFFECT_VERSION_MAJOR,
-            subversion: EFFECT_VERSION_MINOR,
-            bugversion: EFFECT_VERSION_PATCH,
+            version: effect_version_major,
+            subversion: effect_version_minor,
+            bugversion: effect_version_patch,
             stage: Stage::Develop,
             build: 1,
         },
