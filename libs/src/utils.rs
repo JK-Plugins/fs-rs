@@ -66,6 +66,20 @@ pub fn round_byte_long(x: i32) -> u8 {
     temp as u8
 }
 
+/// 元の `RoundByteFpLong`。名前に反して**丸めない**。クランプしてから
+/// `(A_u_char)temp` でキャストするだけなので切り捨てになる。
+///
+/// ```c
+/// inline A_u_char RoundByteFpLong(PF_FpLong x) {
+///     PF_FpLong temp=x;
+///     if (temp<0)   temp=0;
+///     if (temp>PF_MAX_CHAN8) temp=PF_MAX_CHAN8;
+///     return (A_u_char)temp;
+/// }
+/// ```
+///
+/// ここで四捨五入していたせいで、元と最大 1 ずれる画素が出ていた
+/// (RGBAControl で 31049 px、AEXCompat の比較で判明)。
 pub fn round_byte_fp_long(x: f32) -> u8 {
     let mut temp = x;
     if temp < 0.0 {
@@ -74,9 +88,10 @@ pub fn round_byte_fp_long(x: f32) -> u8 {
     if temp > MAX_CHANNEL8 as f32 {
         temp = MAX_CHANNEL8 as f32;
     }
-    temp.round() as u8
+    temp as u8
 }
 
+/// 元の `RoundShortFpLong`。こちらも丸めずに切り捨てる。
 pub fn round_short_fp_long(x: f32) -> u16 {
     let mut temp = x;
     if temp < 0.0 {
@@ -85,7 +100,85 @@ pub fn round_short_fp_long(x: f32) -> u16 {
     if temp > MAX_CHANNEL16 as f32 {
         temp = MAX_CHANNEL16 as f32;
     }
-    temp.round() as u16
+    temp as u16
+}
+
+/// 元の RoundByteFpLong は PF_FpLong (double) を取る。f32 版に値を渡すと
+/// 丸め境界で 1 ずれることがあるので、元が double のまま計算している
+/// ところではこちらを使う。
+pub fn round_byte_fp_double(x: f64) -> u8 {
+    let mut temp = x;
+    if temp < 0.0 {
+        temp = 0.0;
+    }
+    if temp > MAX_CHANNEL8 as f64 {
+        temp = MAX_CHANNEL8 as f64;
+    }
+    temp as u8
+}
+
+/// 元の RoundShortFpLong の double 版。
+pub fn round_short_fp_double(x: f64) -> u16 {
+    let mut temp = x;
+    if temp < 0.0 {
+        temp = 0.0;
+    }
+    if temp > MAX_CHANNEL16 as f64 {
+        temp = MAX_CHANNEL16 as f64;
+    }
+    temp as u16
+}
+
+/// 元の RoundFpShortDouble。double で受けて 0..32.0 に収めてから f32 にする。
+pub fn round_fp_short_double(x: f64) -> f32 {
+    let mut temp = x;
+    if temp < 0.0 {
+        temp = 0.0;
+    }
+    if temp > 32.0 {
+        temp = 32.0;
+    }
+    temp as f32
+}
+
+/// 元の FLT2FIX (`FsUtils.h`)。符号つきで 0.5 を足して固定小数にする。
+pub fn flt2fix(f: f64) -> i32 {
+    (f * 65536.0 + if f < 0.0 { -0.5 } else { 0.5 }) as i32
+}
+
+/// 元の `CRotCalc::SetRotLength(PF_Fixed, PF_Fixed)` (`FsUtils.h`)。
+///
+/// 角度と距離 (どちらも固定小数) から XY のずれ (固定小数) を出す。
+/// 象限ごとに sin と cos を入れ替えて使っているので、そのまま写してある
+/// (90度ごとに丸めの出方が変わる)。0度が上で、時計回り。
+pub fn rot_length(r: i32, len: i32) -> (i32, i32) {
+    if len == 0 {
+        return (0, 0);
+    }
+    // 元の RoundRot。
+    let mut rr = r % (360 << 16);
+    if rr < 0 {
+        rr += 360 << 16;
+    }
+    let r2 = rr as f64 / 65536.0;
+    let v2 = len as f64 / 65536.0;
+    let d = std::f64::consts::PI / 180.0;
+    let (x, y) = if rr < (90 << 16) {
+        ((d * r2).sin() * v2, (d * r2).cos() * v2 * -1.0)
+    } else if rr < (180 << 16) {
+        ((d * (r2 - 90.0)).cos() * v2, (d * (r2 - 90.0)).sin() * v2)
+    } else if rr < (270 << 16) {
+        (
+            (d * (r2 - 180.0)).sin() * v2 * -1.0,
+            (d * (r2 - 180.0)).cos() * v2,
+        )
+    } else {
+        (
+            (d * (r2 - 270.0)).cos() * v2 * -1.0,
+            (d * (r2 - 270.0)).sin() * v2 * -1.0,
+        )
+    };
+    (flt2fix(x), flt2fix(y))
 }
 
 pub fn round_short(x: i32) -> u16 {
@@ -141,6 +234,13 @@ pub fn conv_32_to_8(p: &PF_PixelFloat) -> PF_Pixel {
     }
 }
 
+/// 元の FS_CONVERT32TO16 は FS_CONVERT8TO16(FS_CONVERT32TO8(A))、つまり
+/// 一度 8bit を経由する。16bit なのに 256 段しか出ないが、元の見た目を
+/// 引き継ぐためそのままにしてある。
+pub fn conv_32_to_16(p: &PF_PixelFloat) -> PF_Pixel16 {
+    conv_8_to_16(&conv_32_to_8(p))
+}
+
 pub fn conv_8_to_16(p: &PF_Pixel) -> PF_Pixel16 {
     PF_Pixel16 {
         //#define FS_CONVERT8TO16(A)		( (((A_long)(A) * PF_MAX_CHAN16) + PF_HALF_CHAN8) / PF_MAX_CHAN8 )
@@ -163,13 +263,130 @@ pub fn conv_8_to_16(p: &PF_Pixel) -> PF_Pixel16 {
     }
 }
 
+/// 元の FS_CONVERT8TO32。10000倍して四捨五入し、整数に落としてから
+/// 10000 で割る: つまり小数4桁に量子化される。`(long)` のキャストを
+/// 落とすと量子化されず、Lab 変換のように敏感な処理で 8bit 出力が 1
+/// ずれる。
+pub fn conv_8_to_32_channel(c: u8) -> f32 {
+    ((c as f64 * 10000.0 / MAX_CHANNEL8 as f64 + 0.5) as i64 as f64 / 10000.0) as f32
+}
+
+/// 元の FS_CONVERT16TO32。8bit 版と同じく小数4桁に量子化する。
+pub fn conv_16_to_32_channel(c: u16) -> f32 {
+    ((c as f64 * 10000.0 / MAX_CHANNEL16 as f64 + 0.5) as i64 as f64 / 10000.0) as f32
+}
+
 pub fn conv_8_to_32(p: &PF_Pixel) -> PF_PixelFloat {
-    //#define FS_CONVERT8TO32(A)      ((double)(long)((double)A*10000.0/(double)PF_MAX_CHAN8 + 0.5)/10000.0)
     PF_PixelFloat {
-        //convert to 32-bit float
-        alpha: (p.alpha as f32 * 10000.0 / MAX_CHANNEL8 as f32 + 0.5) / 10000.0,
-        red: (p.red as f32 * 10000.0 / MAX_CHANNEL8 as f32 + 0.5) / 10000.0,
-        green: (p.green as f32 * 10000.0 / MAX_CHANNEL8 as f32 + 0.5) / 10000.0,
-        blue: (p.blue as f32 * 10000.0 / MAX_CHANNEL8 as f32 + 0.5) / 10000.0,
+        alpha: conv_8_to_32_channel(p.alpha),
+        red: conv_8_to_32_channel(p.red),
+        green: conv_8_to_32_channel(p.green),
+        blue: conv_8_to_32_channel(p.blue),
+    }
+}
+
+pub fn conv_16_to_32(p: &PF_Pixel16) -> PF_PixelFloat {
+    PF_PixelFloat {
+        alpha: conv_16_to_32_channel(p.alpha),
+        red: conv_16_to_32_channel(p.red),
+        green: conv_16_to_32_channel(p.green),
+        blue: conv_16_to_32_channel(p.blue),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 元の FS_CONVERT8TO32 は小数4桁に量子化する。
+    #[test]
+    fn conv_8_to_32_quantises_to_four_decimals() {
+        // 1/255 = 0.00392156.. -> 0.0039
+        assert_eq!(conv_8_to_32_channel(1), 0.0039);
+        // 128/255 = 0.50196.. -> 0.502
+        assert_eq!(conv_8_to_32_channel(128), 0.502);
+        assert_eq!(conv_8_to_32_channel(0), 0.0);
+        assert_eq!(conv_8_to_32_channel(255), 1.0);
+    }
+
+    #[test]
+    fn conv_16_to_32_quantises_to_four_decimals() {
+        assert_eq!(conv_16_to_32_channel(0), 0.0);
+        // AE の 16bit は 0..32768 (PF_MAX_CHAN16)。
+        assert_eq!(conv_16_to_32_channel(MAX_CHANNEL16 as u16), 1.0);
+        assert_eq!(conv_16_to_32_channel(16384), 0.5);
+    }
+
+    /// 元の Round* 系は名前に反して丸めず、クランプしてキャストするだけ。
+    /// つまり切り捨てになる。四捨五入にすると元と最大 1 ずれる。
+    #[test]
+    fn round_helpers_truncate_rather_than_round() {
+        assert_eq!(round_byte_fp_long(1.9), 1);
+        assert_eq!(round_byte_fp_long(0.999), 0);
+        assert_eq!(round_byte_fp_long(254.9), 254);
+        assert_eq!(round_short_fp_long(1.9), 1);
+        assert_eq!(round_short_fp_long(32767.9), 32767);
+    }
+
+    /// double 版も f32 版と同じく切り捨て・クランプ。
+    #[test]
+    fn double_round_helpers_truncate_and_clamp() {
+        assert_eq!(round_byte_fp_double(1.9), 1);
+        assert_eq!(round_byte_fp_double(-5.0), 0);
+        assert_eq!(round_byte_fp_double(1000.0), MAX_CHANNEL8 as u8);
+        assert_eq!(round_short_fp_double(1.9), 1);
+        assert_eq!(round_short_fp_double(1.0e9), MAX_CHANNEL16 as u16);
+    }
+
+    #[test]
+    fn round_helpers_clamp_to_the_channel_range() {
+        assert_eq!(round_byte_fp_long(-5.0), 0);
+        assert_eq!(round_byte_fp_long(300.0), MAX_CHANNEL8 as u8);
+        assert_eq!(round_short_fp_long(-1.0), 0);
+        assert_eq!(round_short_fp_long(1.0e9), MAX_CHANNEL16 as u16);
+        assert_eq!(round_byte_long(-1), 0);
+        assert_eq!(round_byte_long(999), MAX_CHANNEL8 as u8);
+        assert_eq!(round_short(-1), 0);
+        assert_eq!(round_short(1 << 20), MAX_CHANNEL16 as u16);
+    }
+
+    /// 元の RoundFpShort は 0..32 にクランプする (1.0 ではない)。
+    #[test]
+    fn round_fp_short_clamps_to_32() {
+        assert_eq!(round_fp_short(-1.0), 0.0);
+        assert_eq!(round_fp_short(5.5), 5.5);
+        assert_eq!(round_fp_short(100.0), 32.0);
+    }
+
+    #[test]
+    fn round_fp_short_double_clamps() {
+        assert_eq!(round_fp_short_double(-1.0), 0.0);
+        assert_eq!(round_fp_short_double(100.0), 32.0);
+        assert_eq!(round_fp_short_double(0.5), 0.5);
+    }
+
+    #[test]
+    fn rot_length_cardinal_directions() {
+        // 0度は上 (y がマイナス)、90度が右、180度が下、270度が左。
+        assert_eq!(rot_length(0, 10 << 16), (0, -(10 << 16)));
+        assert_eq!(rot_length(90 << 16, 10 << 16), (10 << 16, 0));
+        assert_eq!(rot_length(180 << 16, 10 << 16), (0, 10 << 16));
+        assert_eq!(rot_length(270 << 16, 10 << 16), (-(10 << 16), 0));
+    }
+
+    #[test]
+    fn rot_length_zero_and_negative_angles() {
+        assert_eq!(rot_length(0, 0), (0, 0));
+        assert_eq!(
+            rot_length(-90 << 16, 10 << 16),
+            rot_length(270 << 16, 10 << 16)
+        );
+    }
+
+    #[test]
+    fn flt2fix_rounds_away_from_zero() {
+        assert_eq!(flt2fix(1.0), 1 << 16);
+        assert_eq!(flt2fix(-1.0), -(1 << 16));
+        assert_eq!(flt2fix(0.5), 1 << 15);
     }
 }
